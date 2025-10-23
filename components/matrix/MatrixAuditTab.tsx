@@ -51,16 +51,20 @@ const MatrixAuditTab: React.FC<MatrixAuditTabProps> = ({ tasks, roles, companyAs
             });
 
             if (rules.missingT && !finalRoles.includes('T')) {
-                newFindings.push({ taskId: task.id, taskName: task.name, ...task, findingType: "Thiếu vai trò 'Thực hiện' (T)" });
+                // FIX: Removed redundant `taskId` and `taskName` properties. The `...task` spread already includes `id` and `name`.
+                newFindings.push({ ...task, findingType: "Thiếu vai trò 'Thực hiện' (T)" });
             }
             if (rules.missingQ && !finalRoles.includes('Q')) {
-                newFindings.push({ taskId: task.id, taskName: task.name, ...task, findingType: "Thiếu vai trò 'Quyết định' (Q)" });
+                // FIX: Removed redundant `taskId` and `taskName` properties. The `...task` spread already includes `id` and `name`.
+                newFindings.push({ ...task, findingType: "Thiếu vai trò 'Quyết định' (Q)" });
             }
             if (rules.multipleQ && finalRoles.filter(r => r === 'Q').length > 1) {
-                newFindings.push({ taskId: task.id, taskName: task.name, ...task, findingType: "Có nhiều hơn 1 vai trò 'Quyết định' (Q)" });
+                // FIX: Removed redundant `taskId` and `taskName` properties. The `...task` spread already includes `id` and `name`.
+                newFindings.push({ ...task, findingType: "Có nhiều hơn 1 vai trò 'Quyết định' (Q)" });
             }
             if (rules.missingK && !finalRoles.includes('K')) {
-                newFindings.push({ taskId: task.id, taskName: task.name, ...task, findingType: "Thiếu vai trò 'Kiểm soát' (K)" });
+                // FIX: Removed redundant `taskId` and `taskName` properties. The `...task` spread already includes `id` and `name`.
+                newFindings.push({ ...task, findingType: "Thiếu vai trò 'Kiểm soát' (K)" });
             }
         });
         
@@ -95,12 +99,14 @@ const MatrixAuditTab: React.FC<MatrixAuditTabProps> = ({ tasks, roles, companyAs
                     </thead>
                     <tbody>
                         {findings.map((finding, index) => (
-                            <tr key={`${finding.taskId}-${index}`} className="bg-red-50 hover:bg-red-100">
+                            // FIX: Used `finding.id` for the key as `taskId` does not exist on AuditFinding.
+                            <tr key={`${finding.id}-${index}`} className="bg-red-50 hover:bg-red-100">
                                 <td className="p-2 border text-center w-12">{finding.mc1}</td>
                                 <td className="p-2 border text-center w-12">{finding.mc2}</td>
                                 <td className="p-2 border text-center w-12">{finding.mc3}</td>
                                 <td className="p-2 border text-center w-12">{finding.mc4}</td>
-                                <td className="p-2 border">{finding.taskName}</td>
+                                {/* FIX: Used `finding.name` for the task name as `taskName` does not exist on AuditFinding. */}
+                                <td className="p-2 border">{finding.name}</td>
                                 <td className="p-2 border font-semibold">{finding.findingType}</td>
                             </tr>
                         ))}

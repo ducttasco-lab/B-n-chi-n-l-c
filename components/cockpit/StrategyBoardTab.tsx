@@ -1,6 +1,5 @@
 // components/cockpit/StrategyBoardTab.tsx
 import React, { useState, useEffect } from 'react';
-// FIX: Imported SixVariablesModel and StrategicNode to provide strong types.
 import { StrategicModel, StrategyReport, SixVariablesModel, StrategicNode } from '../../types.ts';
 import { SparklesIcon } from '../icons.tsx';
 import { getFullContextFromModel, generateJsonResponse } from '../../services/geminiService.ts';
@@ -9,6 +8,8 @@ interface StrategyBoardTabProps {
     strategicModel: StrategicModel;
     sixVariablesModel: SixVariablesModel;
     triggerGeneration?: number;
+    report: StrategyReport | null;
+    setReport: (report: StrategyReport | null) => void;
 }
 
 const DataGrid: React.FC<{data: any[], title?: string}> = ({ data, title }) => {
@@ -41,8 +42,7 @@ const DataGrid: React.FC<{data: any[], title?: string}> = ({ data, title }) => {
 };
 
 
-const StrategyBoardTab: React.FC<StrategyBoardTabProps> = ({ strategicModel, sixVariablesModel, triggerGeneration }) => {
-    const [report, setReport] = useState<StrategyReport | null>(null);
+const StrategyBoardTab: React.FC<StrategyBoardTabProps> = ({ strategicModel, sixVariablesModel, triggerGeneration, report, setReport }) => {
     const [isLoading, setIsLoading] = useState(false);
 
     const handleGenerateReport = async () => {
@@ -91,8 +91,6 @@ ${context}
         if (!report?.strategicFocusAreas) return [];
         const focusIds = new Set(report.strategicFocusAreas.map(f => f.id));
         const initiatives: any[] = [];
-        // FIX: Explicitly typed 'node' as 'StrategicNode' to resolve errors where
-        // TypeScript inferred it as 'unknown', making its properties inaccessible.
         Object.values(strategicModel).forEach((node: StrategicNode) => {
             if(focusIds.has(node.id) || (node.name && focusIds.has(node.name))) {
                 node.initiatives.forEach(i => {

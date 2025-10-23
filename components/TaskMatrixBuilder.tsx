@@ -1,6 +1,6 @@
 // components/TaskMatrixBuilder.tsx
-import React, { useState, useMemo } from 'react';
-import { Task, Role, Department, MatrixContextInput, ChatMessage } from '../types.ts';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Task, Role, Department, MatrixContextInput, ChatMessage, VersionData, VersionInfo } from '../types.ts';
 import { MOCK_ROLES, MOCK_DEPARTMENTS, MATRIX_BUILDER_INITIAL_INPUTS } from '../constants.tsx';
 import AiCockpit from './matrix/AiCockpit.tsx';
 import TaskListTab from './matrix/TaskListTab.tsx';
@@ -11,13 +11,15 @@ import VersionManagerTab from './matrix/VersionManagerTab.tsx';
 import TaskDashboardTab from './matrix/TaskDashboardTab.tsx';
 import ProcessLookupTab from './matrix/ProcessLookupTab.tsx';
 import MatrixAuditTab from './matrix/MatrixAuditTab.tsx';
+import * as versionManager from '../services/versionManager.ts';
+
 
 type MainTab = 'cockpit' | 'view-tasks' | 'lookup' | 'audit';
 type CockpitTab = 'tasks' | 'company-matrix' | 'detail-assignment' | 'personnel' | 'versions';
 
 const TaskMatrixBuilder: React.FC = () => {
     const [activeMainTab, setActiveMainTab] = useState<MainTab>('cockpit');
-    const [activeCockpitTab, setActiveCockpitTab] = useState<CockpitTab>('personnel');
+    const [activeCockpitTab, setActiveCockpitTab] = useState<CockpitTab>('tasks');
     const [isLoading, setIsLoading] = useState(false);
     
     // State for the entire workflow
@@ -35,6 +37,25 @@ const TaskMatrixBuilder: React.FC = () => {
     const [isAiCockpitCollapsed, setIsAiCockpitCollapsed] = useState(false);
     const [attachedFile, setAttachedFile] = useState<File | null>(null);
     
+    // State for version management
+    const [versions, setVersions] = useState<VersionInfo[]>([]);
+
+
+    // Load active matrix and versions from local storage on initial render
+    useEffect(() => {
+        const activeData = versionManager.loadActiveMatrix();
+        if (activeData) {
+            setTasks(activeData.tasks || []);
+            setCompanyMatrixAssignments(activeData.companyAssignments || {});
+            setDepartmentalAssignments(activeData.departmentalAssignments || {});
+            setGeneratedTaskMarkdown(activeData.generatedTaskMarkdown || '');
+            setDepartments(activeData.departments || MOCK_DEPARTMENTS);
+            setRoles(activeData.roles || MOCK_ROLES);
+            console.log("Loaded active matrix from storage.");
+        }
+        setVersions(versionManager.getVersions());
+    }, []);
+    
     const handleContextChange = (id: number, answer: string) => {
         setContextInputs(prevInputs => 
             prevInputs.map(input => 
@@ -44,12 +65,16 @@ const TaskMatrixBuilder: React.FC = () => {
     };
 
     const handleApplyToNote = (content: string) => {
-        const targetInput = contextInputs.find(i => !i.answer.trim() || i.answer.startsWith("VD:")) || contextInputs[contextInputs.length - 1];
-        if (targetInput) {
-            const currentAnswer = targetInput.answer.startsWith("VD:") ? '' : targetInput.answer;
-            handleContextChange(targetInput.id, (currentAnswer ? currentAnswer + '\n\n' : '') + `[AI Ghi chú]:\n${content}`);
-        }
-        alert('Đã áp dụng ghi chú vào ô thông tin ban đầu.');
+        if (contextInputs.length === 0) return;
+        
+        // Always target the last input for simplicity and predictability
+        const targetInput = contextInputs[contextInputs.length - 1];
+
+        const currentAnswer = targetInput.answer.startsWith("VD:") ? '' : targetInput.answer;
+        
+        handleContextChange(targetInput.id, (currentAnswer ? currentAnswer + '\n\n' : '') + `[AI Ghi chú]:\n${content}`);
+        
+        alert('Đã áp dụng ghi chú vào mục cuối cùng: "Kỳ vọng về Phân công".');
     };
 
     const handleTasksGenerated = (markdown: string) => {
@@ -131,15 +156,79 @@ const TaskMatrixBuilder: React.FC = () => {
             alert("Đã có lỗi khi phân tích ma trận cấp công ty từ AI.");
         }
     };
+    
+     const handleSaveVersion = () => {
+        if (tasks.length === 0) {
+            alert("Không có dữ liệu ma trận để lưu.");
+            return;
+        }
+        const versionName = prompt("Nhập tên cho phiên bản này:", `Phiên bản ngày ${new Date().toLocaleDateString()}`);
+        if (versionName && versionName.trim()) {
+            const versionData: VersionData = {
+                tasks,
+                companyAssignments: companyMatrixAssignments,
+                departmentalAssignments,
+                generatedTaskMarkdown,
+                departments,
+                roles
+            };
+            const newVersions = versionManager.saveVersion(versionName.trim(), versionData);
+            setVersions(newVersions);
+            alert(`Đã lưu thành công phiên bản '${versionName.trim()}'.\nBạn có thể xem lại trong tab '5. Quản lý Phiên bản'.`);
+        }
+    };
+
+    const handleLoadVersion = (data: VersionData) => {
+        if (window.confirm("Thao tác này sẽ ghi đè toàn bộ dữ liệu làm việc hiện tại. Bạn có chắc chắn muốn tải phiên bản này không?")) {
+            setTasks(data.tasks);
+            setCompanyMatrixAssignments(data.companyAssignments);
+            setDepartmentalAssignments(data.departmentalAssignments);
+            setGeneratedTaskMarkdown(data.generatedTaskMarkdown);
+            setDepartments(data.departments);
+            setRoles(data.roles);
+            setActiveCockpitTab('tasks');
+            alert("Đã tải phiên bản thành công vào buồng lái.");
+        }
+    };
+
+    const handleActivateMatrix = () => {
+        if (tasks.length === 0) {
+            alert("Không có dữ liệu để kích hoạt.");
+            return;
+        }
+        if (window.confirm("Hành động này sẽ lưu ma trận hiện tại làm phiên bản hoạt động chính.\n\nDữ liệu này sẽ được tự động tải lại vào lần sau khi bạn mở ứng dụng.\n\nBạn có chắc chắn muốn tiếp tục?")) {
+            const dataToSave: VersionData = {
+                tasks,
+                companyAssignments: companyMatrixAssignments,
+                departmentalAssignments,
+                generatedTaskMarkdown,
+                departments,
+                roles
+            };
+            versionManager.saveActiveMatrix(dataToSave);
+            alert('Ma trận đã được kích hoạt thành công!\n\nPhiên bản này sẽ được tự động tải vào lần làm việc tiếp theo của bạn.');
+        }
+    };
+
+    const handleRenameVersion = (id: string, newName: string) => {
+        const updatedVersions = versionManager.renameVersion(id, newName);
+        setVersions(updatedVersions);
+    };
+
+    const handleDeleteVersion = (id: string) => {
+        const updatedVersions = versionManager.deleteVersion(id);
+        setVersions(updatedVersions);
+    };
 
 
     const renderCockpitContent = () => {
         switch(activeCockpitTab) {
             case 'tasks': return <TaskListTab tasks={tasks} setTasks={setTasks} isLoading={isLoading} />;
-            case 'company-matrix': return <CompanyMatrixTab tasks={tasks} departments={departments} assignments={companyMatrixAssignments} />;
+            case 'company-matrix': return <CompanyMatrixTab tasks={tasks} setTasks={setTasks} departments={departments} assignments={companyMatrixAssignments} onSaveVersion={handleSaveVersion} onActivateMatrix={handleActivateMatrix} />;
+            // FIX: Replaced undefined `setAllAssignments` with the correct state setter `setDepartmentalAssignments`.
             case 'detail-assignment': return <DepartmentAssignmentTab tasks={tasks} roles={roles} departments={departments} allAssignments={departmentalAssignments} setAllAssignments={setDepartmentalAssignments} companyAssignments={companyMatrixAssignments} />;
             case 'personnel': return <PersonnelManagerTab departments={departments} setDepartments={setDepartments} roles={roles} setRoles={setRoles} />;
-            case 'versions': return <VersionManagerTab />;
+            case 'versions': return <VersionManagerTab versions={versions} onLoadVersion={handleLoadVersion} onRenameVersion={handleRenameVersion} onDeleteVersion={handleDeleteVersion} roles={roles} departments={departments}/>;
             default: return null;
         }
     };
@@ -165,7 +254,7 @@ const TaskMatrixBuilder: React.FC = () => {
                 );
             case 'view-tasks': return <TaskDashboardTab tasks={tasks} roles={roles} departments={departments} companyAssignments={companyMatrixAssignments} departmentalAssignments={departmentalAssignments} />;
             case 'lookup': return <ProcessLookupTab tasks={tasks} />;
-            case 'audit': return <MatrixAuditTab tasks={tasks} roles={roles} companyAssignments={companyMatrixAssignments} departmentalAssignments={departmentalAssignments} />;
+            case 'audit': return <MatrixAuditTab tasks={tasks} roles={roles} departments={departments} companyAssignments={companyMatrixAssignments} departmentalAssignments={departmentalAssignments} />;
             default: return <div className="p-4 text-slate-500">Chức năng này đang được xây dựng.</div>;
         }
     };
@@ -173,7 +262,7 @@ const TaskMatrixBuilder: React.FC = () => {
     return (
         <div className="h-full flex flex-col bg-white text-slate-800">
              <header className="flex-shrink-0 p-3 border-b border-slate-200 flex space-x-2 overflow-x-auto">
-                 {[{id: 'cockpit', label: 'Buồng lái Xây dựng Ma trận (AI)'}, {id: 'view-tasks', label: 'Xem Nhiệm vụ'}, {id: 'lookup', label: 'Tra cứu Quy trình'}, {id: 'audit', label: 'Kiểm tra Ma trận'}].map(tab => (
+                 {[{id: 'cockpit', label: 'Xây dựng Ma trận phân nhiệm'}, {id: 'view-tasks', label: 'Xem Nhiệm vụ'}, {id: 'lookup', label: 'Tra cứu Quy trình'}, {id: 'audit', label: 'Kiểm tra Ma trận'}].map(tab => (
                     <button key={tab.id} onClick={() => setActiveMainTab(tab.id as MainTab)} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeMainTab === tab.id ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                         {tab.label}
                     </button>

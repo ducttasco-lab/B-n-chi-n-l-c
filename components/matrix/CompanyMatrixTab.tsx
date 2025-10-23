@@ -1,15 +1,54 @@
 // components/matrix/CompanyMatrixTab.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Task, Department } from '../../types.ts';
 import { PlusIcon, TrashIcon, FileImportIcon } from '../icons.tsx';
 
 interface CompanyMatrixTabProps {
     tasks: Task[];
+    setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
     departments: Department[];
     assignments: Record<string, Record<string, string>>;
+    onSaveVersion: () => void;
+    onActivateMatrix: () => void;
 }
 
-const CompanyMatrixTab: React.FC<CompanyMatrixTabProps> = ({ tasks, departments, assignments }) => {
+const getRowStyle = (task: Task): string => {
+    if (task.isGroupHeader) {
+        return 'bg-slate-200 font-bold';
+    }
+    if (task.mc4) {
+        return 'bg-white hover:bg-slate-50'; // MC4 level
+    }
+    if (task.mc3) {
+        return 'bg-white hover:bg-slate-50';
+    }
+    if (task.mc2) {
+        return 'bg-green-50 hover:bg-green-100'; // MC2 level
+    }
+    if (task.mc1) {
+        return 'bg-blue-50 hover:bg-blue-100 font-bold'; // MC1 level
+    }
+    return 'bg-white hover:bg-slate-50';
+};
+
+
+const CompanyMatrixTab: React.FC<CompanyMatrixTabProps> = ({ tasks, setTasks, departments, assignments, onSaveVersion, onActivateMatrix }) => {
+    const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+    const handleDeleteTask = () => {
+        if (!selectedTaskId) {
+            alert('Vui lòng chọn một dòng để xóa.');
+            return;
+        }
+        if (window.confirm('Bạn có chắc chắn muốn xóa nhiệm vụ đã chọn không?')) {
+            setTasks(prevTasks => {
+                const newTasks = prevTasks.filter(task => task.id !== selectedTaskId);
+                 // Re-index row numbers for data integrity
+                return newTasks.map((task, index) => ({ ...task, rowNumber: index + 1 }));
+            });
+            setSelectedTaskId(null); // Clear selection after deletion
+        }
+    };
     
     if (tasks.length === 0) {
         return (
@@ -42,7 +81,11 @@ const CompanyMatrixTab: React.FC<CompanyMatrixTabProps> = ({ tasks, departments,
                     </thead>
                     <tbody>
                         {tasks.map(task => (
-                            <tr key={task.id} className={task.isGroupHeader ? 'bg-slate-200 font-bold' : 'hover:bg-slate-50'}>
+                            <tr 
+                                key={task.id} 
+                                onClick={() => setSelectedTaskId(task.id)}
+                                className={`${getRowStyle(task)} ${selectedTaskId === task.id ? 'ring-2 ring-blue-500 ring-inset' : ''}`}
+                            >
                                {task.isGroupHeader ? (
                                    <td colSpan={5 + departments.length} className="p-2 border">{task.name}</td>
                                ) : (
@@ -66,11 +109,11 @@ const CompanyMatrixTab: React.FC<CompanyMatrixTabProps> = ({ tasks, departments,
             </div>
             <div className="p-2 border-t border-slate-200 flex space-x-2 flex-shrink-0">
                  <button className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1"><PlusIcon/> Thêm mới</button>
-                <button className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1"><TrashIcon/> Xóa</button>
+                <button onClick={handleDeleteTask} disabled={!selectedTaskId} className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"><TrashIcon/> Xóa</button>
                 <button className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1"><FileImportIcon/> Import từ File...</button>
                  <div className="flex-grow"></div>
-                 <button className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200">Lưu Phiên bản...</button>
-                 <button className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 font-semibold">Kích hoạt Ma trận</button>
+                 <button onClick={onSaveVersion} className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200">Lưu Phiên bản...</button>
+                 <button onClick={onActivateMatrix} className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 font-semibold">Kích hoạt Ma trận</button>
             </div>
         </div>
     );

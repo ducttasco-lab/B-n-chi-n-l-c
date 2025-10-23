@@ -90,7 +90,10 @@ const TaskDashboardTab: React.FC<TaskDashboardTabProps> = ({ tasks, roles, depar
                 const finalRole = specificRole || inheritedRole;
 
                 if (finalRole && (!roleFilter || finalRole === roleFilter)) {
+                    // FIX: Added the missing 'employeeId' property to conform to the UserTask type.
                     userTasks.push({
+                        id: task.id,
+                        employeeId: selectedStaff,
                         rowNumber: task.rowNumber,
                         mc1: task.mc1,
                         mc2: task.mc2,

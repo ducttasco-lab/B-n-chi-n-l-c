@@ -98,7 +98,7 @@ ${historyForPrompt}
       <header className="flex items-center justify-between p-3 border-b border-slate-200 flex-shrink-0">
         <div className="flex items-center space-x-2">
           <SparklesIcon />
-          <h2 className="text-lg font-semibold text-slate-800">AI Advisor</h2>
+          <h2 className="text-lg font-semibold text-slate-800">Cố vấn AI</h2>
         </div>
       </header>
 

@@ -20,17 +20,27 @@ const Hexagon: React.FC<{
     variableId: string,
     label: string,
     status: KpiStatus,
+    isFilled: boolean,
     isSelected: boolean,
     onClick: (id: string) => void
-}> = ({ variableId, label, status, isSelected, onClick }) => {
-    const styles = statusStyles[status];
+}> = ({ variableId, label, status, isFilled, isSelected, onClick }) => {
+    const baseStyles = statusStyles[status];
+    
+    const backgroundClass = (status === 'Neutral' && isFilled)
+        ? 'from-sky-500 to-sky-600' // Blue for filled but not diagnosed
+        : baseStyles.gradient;
+        
+    const borderClass = (status === 'Neutral' && isFilled)
+        ? 'border-sky-700'
+        : baseStyles.border;
+
     return (
         <div
             onClick={() => onClick(variableId)}
             className={`relative w-32 h-36 flex items-center justify-center cursor-pointer group transition-transform duration-200 ease-in-out ${isSelected ? 'scale-110' : 'hover:scale-105 hover:-translate-y-1'}`}
         >
             <div
-                className={`absolute inset-0 bg-gradient-to-br ${styles.gradient} ${styles.border} border-b-4 shadow-lg transition-all duration-200 ${isSelected ? 'brightness-110' : 'group-hover:brightness-105'}`}
+                className={`absolute inset-0 bg-gradient-to-br ${backgroundClass} ${borderClass} border-b-4 shadow-lg transition-all duration-200 ${isSelected ? 'brightness-110' : 'group-hover:brightness-105'}`}
                 style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
             />
             {isSelected && (
@@ -39,7 +49,7 @@ const Hexagon: React.FC<{
                     style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
                 />
             )}
-            <div className={`relative z-10 p-2 text-center ${styles.text}`}>
+            <div className={`relative z-10 p-2 text-center ${baseStyles.text}`}>
                 <p className="text-sm font-bold drop-shadow-sm">{label}</p>
             </div>
         </div>
@@ -97,6 +107,7 @@ const SixVariablesNavigator: React.FC<SixVariablesNavigatorProps> = ({ model, se
         if (!variableConfig) return null;
         
         const variableData = model[pos.id];
+        const isFilled = variableData.questionAnswers.some(qa => qa.answer.trim() !== '');
 
         return (
           <div
@@ -108,6 +119,7 @@ const SixVariablesNavigator: React.FC<SixVariablesNavigatorProps> = ({ model, se
                 variableId={pos.id}
                 label={variableConfig.name.split('(')[0].trim()}
                 status={variableData.status}
+                isFilled={isFilled}
                 isSelected={selectedVariableId === pos.id}
                 onClick={onVariableSelect}
             />

@@ -31,7 +31,7 @@ const MapAndDiagnosisTab: React.FC<MapAndDiagnosisTabProps> = ({
         />
       </div>
       <div className="bg-white p-4 rounded-lg shadow-md mt-24">
-        <div className="max-w-[280px] mx-auto">
+        <div className="max-w-sm mx-auto">
           <SixVariablesNavigator 
             model={sixVariablesModel} 
             onVariableSelect={onVariableSelect} 

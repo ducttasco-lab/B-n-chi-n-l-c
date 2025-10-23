@@ -8,10 +8,13 @@ import StrategyBoardTab from './cockpit/StrategyBoardTab.tsx';
 import AiAdvisor from './AiAdvisor.tsx';
 import TemplateFillerDialog from './TemplateFillerDialog.tsx';
 import { PaperClipIcon, SparklesIcon } from './icons.tsx';
+import InitiativeEditor from './cockpit/InitiativeEditor.tsx';
+import ProgressLogger from './cockpit/ProgressLogger.tsx';
 
-import { StrategicModel, SixVariablesModel, StrategicNode, StrategicInitiative, SixVariablesNode } from '../types.ts';
+
+import { StrategicModel, SixVariablesModel, StrategicNode, StrategicInitiative, SixVariablesNode, ProgressUpdate, StrategyReport, ReportItem } from '../types.ts';
 import { INITIAL_STRATEGIC_MODEL, INITIAL_SIX_VARIABLES_MODEL } from '../constants.tsx';
-import { getNoteSummaryFromAI, getInitiativeSummaryFromAI, diagnoseAll6Variables } from '../services/geminiService.ts';
+import { getNoteSummaryFromAI, getInitiativeSummaryFromAI } from '../services/geminiService.ts';
 
 type CockpitTab = 'map' | 'plan' | 'analysis-18' | 'analysis-6' | 'board' | 'action-plan' | 'strategy-board';
 
@@ -20,18 +23,21 @@ const StrategicCockpit: React.FC = () => {
     const [strategicModel, setStrategicModel] = useState<StrategicModel>(INITIAL_STRATEGIC_MODEL);
     const [sixVariablesModel, setSixVariablesModel] = useState<SixVariablesModel>(INITIAL_SIX_VARIABLES_MODEL);
     const [activeTab, setActiveTab] = useState<CockpitTab>('map');
-    const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+    const [selectedNodeId, setSelectedNodeId] = useState<string | null>('1: Vấn đề của Khách hàng');
     const [selectedVariableId, setSelectedVariableId] = useState<string | null>(null);
     const [isFillerOpen, setIsFillerOpen] = useState(false);
     const [lastAiResponse, setLastAiResponse] = useState("");
     const [isNotesPanelCollapsed, setIsNotesPanelCollapsed] = useState(false);
+    const [editingInitiative, setEditingInitiative] = useState<{nodeId: string, initiative?: StrategicInitiative} | null>(null);
+    const [loggingProgressFor, setLoggingProgressFor] = useState<{nodeId: string, initiative: StrategicInitiative} | null>(null);
     
     const [trigger18Factors, setTrigger18Factors] = useState(0);
     const [trigger6Variables, setTrigger6Variables] = useState(0);
     const [triggerStrategyBoard, setTriggerStrategyBoard] = useState(0);
 
-    const [report18Factors, setReport18Factors] = useState('');
-    const [report6Variables, setReport6Variables] = useState('');
+    const [report18Factors, setReport18Factors] = useState<ReportItem[]>([]);
+    const [report6Variables, setReport6Variables] = useState<ReportItem[]>([]);
+    const [strategyBoardReport, setStrategyBoardReport] = useState<StrategyReport | null>(null);
     
     // AI Advisor state
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -83,26 +89,63 @@ const StrategicCockpit: React.FC = () => {
         handleAnswerChange(0, (currentAnswer ? currentAnswer + "\n\n" : "") + `[AI Ghi chú]: ${summary}`);
     };
     
-    const handleCreateInitiative = async () => {
-        if (!lastAiResponse.trim() || !selectedNodeId) return;
-        const summary = await getInitiativeSummaryFromAI(lastAiResponse);
-        const newNode = { ...strategicModel[selectedNodeId] };
+   const handleCreateInitiative = async () => {
+        if (!selectedNodeId) {
+            alert("Vui lòng chọn một Yếu tố trên Bản đồ Chiến lược trước.");
+            return;
+        }
+    
+        const node = strategicModel[selectedNodeId];
         const newInitiative: StrategicInitiative = {
             id: `initiative-${Date.now()}`,
-            name: `Sáng kiến mới cho "${newNode.name}"`,
-            description: summary,
+            name: `Sáng kiến mới cho "${node.name}"`,
+            description: lastAiResponse ? await getInitiativeSummaryFromAI(lastAiResponse) : '',
             owner: '',
             dueDate: new Date().toISOString().split('T')[0],
             status: 'Mới tạo',
             currentProgress: 0,
             progressHistory: [],
-            latestStatusComment: 'Mới được tạo bởi AI.',
+            latestStatusComment: lastAiResponse ? 'Nội dung ban đầu được gợi ý bởi AI.' : 'Được tạo thủ công.',
         };
-        newNode.initiatives = [...newNode.initiatives, newInitiative];
-        handleUpdateNode(selectedNodeId, newNode);
-        alert('Sáng kiến mới đã được tạo trong tab "Kế hoạch Hành động".');
-        setActiveTab('action-plan');
+        
+        setEditingInitiative({ nodeId: selectedNodeId, initiative: newInitiative });
     };
+
+    const handleSaveInitiative = (nodeId: string, initiative: StrategicInitiative) => {
+        const node = strategicModel[nodeId];
+        const existingIndex = node.initiatives.findIndex(i => i.id === initiative.id);
+        const newInitiatives = [...node.initiatives];
+        if (existingIndex > -1) {
+            newInitiatives[existingIndex] = initiative;
+        } else {
+            newInitiatives.push(initiative);
+        }
+        handleUpdateNode(nodeId, { initiatives: newInitiatives });
+        if (existingIndex === -1) {
+          alert('Sáng kiến mới đã được tạo trong tab "Kế hoạch Hành động".');
+          setActiveTab('action-plan');
+        }
+    };
+
+    const handleSaveProgress = (nodeId: string, initiativeId: string, update: ProgressUpdate) => {
+        const node = strategicModel[nodeId];
+        const initiativeIndex = node.initiatives.findIndex(i => i.id === initiativeId);
+        if (initiativeIndex > -1) {
+            const updatedInitiative = { ...node.initiatives[initiativeIndex] };
+            
+            const newProgressHistory = [...updatedInitiative.progressHistory, update];
+            const latestUpdate = newProgressHistory.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+
+            updatedInitiative.progressHistory = newProgressHistory;
+            updatedInitiative.currentProgress = latestUpdate.progressPercentage;
+            updatedInitiative.latestStatusComment = latestUpdate.comment;
+            
+            const newInitiatives = [...node.initiatives];
+            newInitiatives[initiativeIndex] = updatedInitiative;
+            handleUpdateNode(nodeId, { initiatives: newInitiatives });
+        }
+    };
+
 
     const handleDiagnoseVariables = async () => {
         setActiveTab('analysis-6');
@@ -127,9 +170,20 @@ const StrategicCockpit: React.FC = () => {
     const renderTabContent = () => {
         switch (activeTab) {
             case 'action-plan':
-                return <ActionPlanTab strategicModel={strategicModel} onUpdateNode={handleUpdateNode} />;
+                return <ActionPlanTab 
+                            strategicModel={strategicModel} 
+                            onUpdateNode={handleUpdateNode}
+                            onEditInitiative={(nodeId, initiative) => setEditingInitiative({ nodeId, initiative })}
+                            onLogProgress={(nodeId, initiative) => setLoggingProgressFor({ nodeId, initiative })}
+                        />;
             case 'strategy-board':
-                return <StrategyBoardTab strategicModel={strategicModel} sixVariablesModel={sixVariablesModel} triggerGeneration={triggerStrategyBoard} />;
+                return <StrategyBoardTab 
+                            strategicModel={strategicModel} 
+                            sixVariablesModel={sixVariablesModel} 
+                            triggerGeneration={triggerStrategyBoard} 
+                            report={strategyBoardReport}
+                            setReport={setStrategyBoardReport}
+                        />;
             case 'analysis-18':
                 return <AnalysisReportTab title="Phân tích 18 Yếu tố" reportContent={report18Factors} setReportContent={setReport18Factors} strategicModel={strategicModel} sixVariablesModel={sixVariablesModel} analysisType="18factors" triggerGeneration={trigger18Factors} />;
             case 'analysis-6':
@@ -143,6 +197,21 @@ const StrategicCockpit: React.FC = () => {
     return (
         <div className="h-full w-full flex flex-col bg-slate-50 text-sm">
              {isFillerOpen && <TemplateFillerDialog onClose={() => setIsFillerOpen(false)} setStrategicModel={setStrategicModel} setSixVariablesModel={setSixVariablesModel} />}
+             {editingInitiative && (
+                <InitiativeEditor 
+                    nodeId={editingInitiative.nodeId}
+                    initiative={editingInitiative.initiative}
+                    onClose={() => setEditingInitiative(null)}
+                    onSave={handleSaveInitiative}
+                />
+            )}
+            {loggingProgressFor && (
+                <ProgressLogger
+                    initiative={loggingProgressFor.initiative}
+                    onClose={() => setLoggingProgressFor(null)}
+                    onSave={(update) => handleSaveProgress(loggingProgressFor.nodeId, loggingProgressFor.initiative.id, update)}
+                />
+            )}
             <header className="flex-shrink-0 bg-white border-b p-2 flex justify-between items-center">
                  <div className="flex items-center space-x-1">
                     {(['map', 'action-plan', 'strategy-board', 'analysis-18', 'analysis-6'] as CockpitTab[]).map(tabId => {
@@ -166,7 +235,7 @@ const StrategicCockpit: React.FC = () => {
                     {renderTabContent()}
                 </main>
                 <aside className="w-[550px] flex-shrink-0 border-l border-slate-200 flex flex-col bg-slate-100">
-                     <div className="flex-1 flex flex-col min-h-0">
+                     <div className={`collapsible-panel flex-1 flex-col min-h-0 ${isNotesPanelCollapsed ? 'collapsed' : 'flex'}`}>
                         {/* Notes Panel (Scrollable) */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-3">
                             <h2 className="text-lg font-bold">{selectedItem?.name || "Chọn một Yếu tố hoặc Biến số để xem chi tiết"}</h2>
@@ -199,8 +268,8 @@ const StrategicCockpit: React.FC = () => {
                         </div>
                     </div>
                     
-                    {/* AI Advisor Panel (Fixed Height) */}
-                    <div className="h-[40%] flex flex-col min-h-0 flex-shrink-0">
+                    {/* AI Advisor Panel */}
+                    <div className={`flex flex-col min-h-0 flex-shrink-0 ${isNotesPanelCollapsed ? 'flex-1' : 'h-[40%]'}`}>
                        <AiAdvisor 
                            key={advisorKey}
                            strategicModel={strategicModel}
@@ -215,9 +284,9 @@ const StrategicCockpit: React.FC = () => {
                      <div className="flex-shrink-0 p-2 bg-slate-100 flex items-center justify-start space-x-2 text-xs border-t">
                         <input type="file" ref={fileInputRef} className="hidden" onChange={() => { alert('Chức năng đính kèm file đang được phát triển.')}} />
                         <button onClick={handleFileAttach} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-200"><PaperClipIcon /> <span>Đính kèm File</span></button>
-                        <button onClick={() => setIsNotesPanelCollapsed(p => !p)} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-200"><span>{isNotesPanelCollapsed ? 'Mở rộng' : 'Thu gọn'} Chat</span></button>
+                        <button onClick={() => setIsNotesPanelCollapsed(p => !p)} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-200"><span>{isNotesPanelCollapsed ? 'Thu gọn Chat' : 'Mở rộng Chat'}</span></button>
                         <button onClick={handleApplyNote} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-200 disabled:opacity-50" disabled={!lastAiResponse}><span>✔ Áp dụng Ghi chú</span></button>
-                        <button onClick={handleCreateInitiative} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-200 disabled:opacity-50" disabled={!lastAiResponse || !selectedNodeId}><span>+ Tạo Sáng kiến</span></button>
+                        <button onClick={handleCreateInitiative} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-200 disabled:opacity-50" disabled={!selectedNodeId}><span>+ Tạo Sáng kiến</span></button>
                         <div className="relative">
                              <button ref={optionsButtonRef} onClick={() => setIsOptionsOpen(p => !p)} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-200"><span>Tùy chọn...</span></button>
                              {isOptionsOpen && (

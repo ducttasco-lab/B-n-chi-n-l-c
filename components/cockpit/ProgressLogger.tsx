@@ -18,7 +18,7 @@ const ProgressLogger: React.FC<ProgressLoggerProps> = ({ initiative, onClose, on
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!comment.trim() || !author.trim()) {
-      alert('Please fill in all fields.');
+      alert('Vui lòng điền đầy đủ các trường thông tin.');
       return;
     }
     const newUpdate: ProgressUpdate = {
@@ -36,11 +36,11 @@ const ProgressLogger: React.FC<ProgressLoggerProps> = ({ initiative, onClose, on
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-        <h2 className="text-xl font-bold mb-4">Log Progress for "{initiative.name}"</h2>
+        <h2 className="text-xl font-bold mb-4">Ghi nhận Tiến độ cho "{initiative.name}"</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="progress" className="block text-sm font-medium text-gray-700">
-              Progress ({progress}%)
+              Tiến độ ({progress}%)
             </label>
             <input
               id="progress"
@@ -53,7 +53,7 @@ const ProgressLogger: React.FC<ProgressLoggerProps> = ({ initiative, onClose, on
             />
           </div>
           <div>
-            <label htmlFor="comment" className="block text-sm font-medium text-gray-700">Comment</label>
+            <label htmlFor="comment" className="block text-sm font-medium text-gray-700">Ghi chú</label>
             <textarea
               id="comment"
               rows={4}
@@ -64,7 +64,7 @@ const ProgressLogger: React.FC<ProgressLoggerProps> = ({ initiative, onClose, on
             />
           </div>
            <div>
-            <label htmlFor="author" className="block text-sm font-medium text-gray-700">Author</label>
+            <label htmlFor="author" className="block text-sm font-medium text-gray-700">Người cập nhật</label>
             <input
               id="author"
               type="text"
@@ -76,10 +76,10 @@ const ProgressLogger: React.FC<ProgressLoggerProps> = ({ initiative, onClose, on
           </div>
           <div className="flex justify-end space-x-2">
             <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">
-              Cancel
+              Hủy
             </button>
             <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-              Save Update
+              Lưu Cập nhật
             </button>
           </div>
         </form>

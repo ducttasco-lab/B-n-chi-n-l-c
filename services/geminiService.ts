@@ -1,7 +1,6 @@
 // services/geminiService.ts
 import { GoogleGenAI, GenerateContentResponse, Content } from "@google/genai";
-// FIX: Added StrategicNode and SixVariablesNode to the import.
-import { StrategicModel, SixVariablesModel, KeyResult, StrategicNode, SixVariablesNode, Task } from '../types.ts';
+import { StrategicModel, SixVariablesModel, KPI, StrategicNode, SixVariablesNode, Task, KpiStatus } from '../types.ts';
 
 const API_KEY = process.env.API_KEY;
 
@@ -112,7 +111,6 @@ export const generateJsonResponse = async <T>(
 export const getFullContextFromModel = (strategicModel: StrategicModel, sixVariablesModel: SixVariablesModel): string => {
     let context = "Dưới đây là toàn bộ bối cảnh kinh doanh của doanh nghiệp:\n\n";
     context += "=== BẢN ĐỒ CHIẾN LƯỢỢC 18 YẾU TỐ ===\n";
-    // FIX: Cast Object.values to the correct type to resolve type inference issues.
     for(const nodeData of Object.values(strategicModel) as StrategicNode[]) {
         context += `\n--- ${nodeData.name} ---\n`;
         nodeData.questionAnswers.forEach(qa => {
@@ -123,7 +121,6 @@ export const getFullContextFromModel = (strategicModel: StrategicModel, sixVaria
     }
 
     context += "\n\n=== 6 BIẾN SỐ KIỂM SOÁT ===\n";
-    // FIX: Cast Object.values to the correct type to resolve type inference issues.
     for(const variableData of Object.values(sixVariablesModel) as SixVariablesNode[]) {
         context += `\n--- ${variableData.name} ---\n`;
         variableData.questionAnswers.forEach(qa => {
@@ -138,33 +135,33 @@ export const getFullContextFromModel = (strategicModel: StrategicModel, sixVaria
     return context;
 };
 
-export const analyzeAll18Factors = async (context: string): Promise<Record<string, string>> => {
-    // This is a simplified version. In a real scenario, you might make one large call
-    // or break it into multiple calls for better accuracy.
-    const prompt = `Bạn là một chuyên gia tư vấn chiến lược kinh doanh. Dựa trên bối cảnh kinh doanh được cung cấp, hãy viết một phân tích ngắn gọn (2-3 câu) cho TỪNG yếu tố trong số 18 yếu tố chiến lược.
-    
-    Bối cảnh kinh doanh:
-    ${context}
-    
-    YÊU CẦU: Trả về kết quả dưới dạng một đối tượng JSON duy nhất. Key của đối tượng là tên đầy đủ của yếu tố (ví dụ: "1: Vấn đề của Khách hàng"), và value là chuỗi phân tích của bạn cho yếu tố đó.`;
-
-    const result = await generateJsonResponse<Record<string, string>>(prompt);
-    return result || {};
+export const analyzeSingleFactor = async (context: string, factorName: string): Promise<string> => {
+    const prompt = `[ĐÓNG VAI]: Bạn là một nhà tư vấn chiến lược cấp cao.
+[BỐI CẢNH]: Bạn đã được cung cấp TOÀN BỘ BỐI CẢNH CHIẾN LƯỢC của một doanh nghiệp.
+--- BỐI CẢNH CHUNG ---
+${context}
+--- HẾT BỐI CẢNH CHUNG ---
+[NHIỆM VỤ]: Dựa vào toàn bộ bối cảnh, hãy tập trung phân tích sâu sắc về CHỈ MỘT YẾU TỐ DUY NHẤT: "${factorName}". 
+Hãy đưa ra một bài phân tích tổng thể, đánh giá các điểm mạnh, điểm yếu, các mâu thuẫn logic (nếu có) và đề xuất các hành động chiến lược cụ thể liên quan đến yếu tố này.
+[ĐỊNH DẠNG ĐẦU RA]: Chỉ trả về nội dung phân tích cho yếu tố này dưới dạng văn bản Markdown. KHÔNG bao gồm tiêu đề của yếu tố.`;
+    return await generateText(prompt);
 };
 
-export const diagnoseAll6Variables = async (context: string): Promise<Record<string, { assessment: string; status: 'Good' | 'Warning' | 'Bad' | 'Neutral' }>> => {
-     const prompt = `Bạn là một chuyên gia phân tích tài chính và quản trị. Dựa trên bối cảnh kinh doanh được cung cấp, hãy thực hiện chẩn đoán cho TỪNG biến số trong 6 biến số kiểm soát.
-    
-    Bối cảnh kinh doanh:
-    ${context}
-    
-    YÊU CẦU: Trả về kết quả dưới dạng một đối tượng JSON duy nhất. Key của đối tượng là ID của biến số (MarketPosition, Innovation, etc.). Value là một object chứa 2 thuộc tính:
-    1. "assessment": một chuỗi tóm tắt chẩn đoán ngắn gọn (tối đa 20 từ).
-    2. "status": một chuỗi có giá trị là 'Good', 'Warning', 'Bad', hoặc 'Neutral'.`;
+export const diagnoseSingleVariable = async (context: string, variableName: string): Promise<{ assessment: string; status: KpiStatus }> => {
+    const prompt = `[ĐÓNG VAI]: Bạn là một nhà tư vấn chiến lược cấp cao, chuyên chẩn đoán sức khỏe doanh nghiệp.
+[BỐI CẢNH]: Người dùng đã cung cấp một bản tự đánh giá về biến số '${variableName}'. Toàn bộ bối cảnh doanh nghiệp như sau:
+---
+${context}
+---
+[NHIỆM VỤ]: Dựa vào nội dung trên, hãy thực hiện 2 việc cho CHỈ BIẾN SỐ '${variableName}':
+1. Đưa ra một nhận định trạng thái: 'Good', 'Warning', hoặc 'Bad'.
+2. Viết một câu tóm tắt (tối đa 25 từ) về tình hình của biến số đó.
+[ĐỊNH DẠNG ĐẦU RA BẮT BUỘC]: Trả về một đối tượng JSON duy nhất có 2 khóa: 'status' (string) và 'assessment' (string).`;
 
-    const result = await generateJsonResponse<Record<string, { assessment: string; status: 'Good' | 'Warning' | 'Bad' | 'Neutral' }>>(prompt);
-    return result || {};
+    const result = await generateJsonResponse<{ assessment: string; status: KpiStatus }>(prompt);
+    return result || { assessment: 'Lỗi trong quá trình chẩn đoán.', status: 'Neutral' };
 };
+
 
 export const getNoteSummaryFromAI = async (fullText: string): Promise<string> => {
   const prompt = `
@@ -191,28 +188,22 @@ ${fullText}
 };
 
 
-export const suggestKeyResults = async (taskName: string, objective: string): Promise<KeyResult[] | null> => {
-  const prompt = `
-[ĐÓNG VAI]: Bạn là một chuyên gia hàng đầu về OKR (Objectives and Key Results).
+export const suggestKPIs = async (taskName: string, objective: string): Promise<Omit<KPI, 'kpiId' | 'actual' | 'progress' | 'history'>[] | null> => {
+    const prompt = `[ĐÓNG VAI]: Bạn là một chuyên gia hàng đầu về quản trị hiệu suất bằng KPI.
 [BỐI CẢNH]:
 - Nhiệm vụ chính từ Ma trận Phân nhiệm: "${taskName}"
-- Mục tiêu (Objective) đã đặt ra: "${objective}"
-[NHIỆM VỤ]:
-Đề xuất 3-4 Kết quả Then chốt (Key Results) theo tiêu chí SMART.
-[QUY TẮC ĐỊNH DẠNG ĐẦU RA]:
-Trả về một mảng JSON. Mỗi object trong mảng phải có 4 khóa:
-1. "description": (string) Mô tả KR.
+- Mục tiêu chính đã đặt ra: "${objective}"
+[NHIỆM VỤ]: Đề xuất 3-5 Chỉ số Hiệu suất Chính (KPI) theo tiêu chí SMART để đo lường việc hoàn thành mục tiêu.
+[QUY TẮC ĐỊNH DẠNG ĐẦU RA]: Trả về một đối tượng JSON duy nhất có một khóa là "kpis", giá trị là một MẢNG các đối tượng. Mỗi đối tượng trong mảng phải có 4 khóa:
+1. "description": (string) Mô tả KPI.
 2. "baseline": (number) Giá trị ban đầu, thường là 0.
 3. "target": (number) Giá trị mục tiêu.
 4. "unit": (string) Đơn vị tính (ví dụ: 'VNĐ', '%', 'báo cáo').
 [VÍ DỤ]:
-[
-  {"description": "Tăng doanh thu từ khách hàng mới", "baseline": 0, "target": 500000000, "unit": "VNĐ"},
-  {"description": "Giảm tỷ lệ khách hàng phàn nàn", "baseline": 10, "target": 5, "unit": "%"}
-]
+{"kpis": [{"description": "Doanh thu bán hàng", "baseline": 0, "target": 500000000, "unit": "VNĐ"}, {"description": "Tỷ lệ khách hàng hài lòng", "baseline": 80, "target": 95, "unit": "%"}]}
 `;
-  const result = await generateJsonResponse<Omit<KeyResult, 'krId'>[]>(prompt);
-  return result?.map(kr => ({...kr, krId: `kr-${Date.now()}-${Math.random()}`})) || null;
+    const result = await generateJsonResponse<{ kpis: Omit<KPI, 'kpiId' | 'actual' | 'progress' | 'history'>[] }>(prompt);
+    return result?.kpis || null;
 };
 
 export const suggestTasksForMatrix = async (context: string, detailLevel: string): Promise<string | null> => {
@@ -271,7 +262,7 @@ ${taskListMarkdown}
     - **K (Kiểm soát):** Người/bộ phận kiểm tra, giám sát chất lượng và tiến độ.
     - **P (Phối hợp):** Người/bộ phận cần phối hợp, tham gia ý kiến.
     - **B (Báo cáo):** Người/bộ phận cần được thông báo, báo cáo kết quả.
-- **Logic suy luận:** Hãy suy luận một cách logic dựa trên bản chất của công việc và chức năng của từng phòng ban để đưa ra phân công tối ưu nhất.
+- **Logic suy luận:** Hãy suy luận một cách logic dựa trên bản chất của công việc và chức năng của từng phòng ban để đưa ra phân công tối ưu nhất. Cố gắng phân bổ vai trò cho nhiều phòng ban có liên quan, tránh tập trung tất cả vào một phòng ban duy nhất.
 - **Quy tắc vàng:** Luôn đảm bảo mỗi hàng (mỗi công việc chi tiết, không phải dòng tiêu đề) chỉ CÓ DUY NHẤT một chữ 'Q'.
 - **QUY TẮC ƯU TIÊN:** Đối với các nhiệm vụ quản lý cấp cao (thường có Mã A), vai trò 'Q' hoặc 'K' nên được ưu tiên gán cho 'Ban Giám đốc' hoặc 'Hội đồng thành viên'. Đối với các nhiệm vụ tác nghiệp (Mã B), vai trò 'T' nên được gán cho các phòng ban chuyên môn.
 [ĐỊNH DẠNG ĐẦU RA]: Chỉ trả về kết quả dưới dạng một BẢNG MARKDOWN duy nhất. KHÔNG thêm bất kỳ văn bản, lời giải thích hay bình luận nào khác.`;

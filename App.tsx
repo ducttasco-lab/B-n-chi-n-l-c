@@ -13,7 +13,7 @@ const App: React.FC = () => {
   const navItems = [
     { id: 'cockpit', icon: <MapIcon />, label: 'Bản đồ Chiến lược' },
     { id: 'matrix', icon: <TableCellsIcon />, label: 'Ma trận Phân nhiệm' },
-    { id: 'goals', icon: <CheckCircleIcon />, label: 'Quản lý Mục tiêu' },
+    { id: 'goals', icon: <CheckCircleIcon />, label: 'Quản lý mục tiêu năm' },
   ];
 
   const renderView = () => {

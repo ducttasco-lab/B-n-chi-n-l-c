@@ -1,5 +1,5 @@
 // components/matrix/TaskListTab.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Task } from '../../types.ts';
 import { PlusIcon, TrashIcon, FileImportIcon } from '../icons.tsx';
 
@@ -10,6 +10,7 @@ interface TaskListTabProps {
 }
 
 const TaskListTab: React.FC<TaskListTabProps> = ({ tasks, setTasks, isLoading }) => {
+    const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
     
     if (isLoading) {
         return (
@@ -37,6 +38,63 @@ const TaskListTab: React.FC<TaskListTabProps> = ({ tasks, setTasks, isLoading })
         ));
     };
 
+    const getRowStyle = (task: Task): string => {
+        if (task.isGroupHeader) {
+            return 'bg-slate-200 font-bold';
+        }
+        if (task.mc4) {
+            return 'bg-white hover:bg-slate-50'; // MC4 level, no color
+        }
+        if (task.mc3) {
+            return 'bg-white hover:bg-slate-50'; 
+        }
+        if (task.mc2) {
+            return 'bg-green-50 hover:bg-green-100'; // MC2 level, light green
+        }
+        if (task.mc1) {
+            return 'bg-blue-50 hover:bg-blue-100 font-bold'; // MC1 level, bold and light blue
+        }
+        return 'bg-white hover:bg-slate-50'; // Default for rows with no MC code
+    };
+
+    const handleAddTask = () => {
+        const newTask: Task = {
+            id: `task-${Date.now()}`,
+            rowNumber: 0, // Will be re-indexed
+            mc1: '', mc2: '', mc3: '', mc4: '',
+            name: 'Nhiệm vụ mới',
+            isGroupHeader: false,
+            assignments: {}
+        };
+
+        setTasks(prevTasks => {
+            const selectedIndex = prevTasks.findIndex(t => t.id === selectedTaskId);
+            
+            const newTasks = [...prevTasks];
+            // Insert above the selected row, or at the end if no row is selected
+            const insertIndex = selectedIndex !== -1 ? selectedIndex : prevTasks.length;
+            newTasks.splice(insertIndex, 0, newTask);
+            
+            // Re-index row numbers for data integrity
+            return newTasks.map((task, index) => ({ ...task, rowNumber: index + 1 }));
+        });
+    };
+
+    const handleDeleteTask = () => {
+        if (!selectedTaskId) {
+            alert('Vui lòng chọn một dòng để xóa.');
+            return;
+        }
+        if (window.confirm('Bạn có chắc chắn muốn xóa nhiệm vụ đã chọn không?')) {
+            setTasks(prevTasks => {
+                const newTasks = prevTasks.filter(task => task.id !== selectedTaskId);
+                 // Re-index row numbers
+                return newTasks.map((task, index) => ({ ...task, rowNumber: index + 1 }));
+            });
+            setSelectedTaskId(null); // Clear selection
+        }
+    };
+
     return (
         <div className="h-full flex flex-col">
             <div className="flex-1 overflow-auto">
@@ -52,7 +110,11 @@ const TaskListTab: React.FC<TaskListTabProps> = ({ tasks, setTasks, isLoading })
                     </thead>
                     <tbody>
                         {tasks.map(task => (
-                            <tr key={task.id} className={task.isGroupHeader ? 'bg-slate-200' : 'hover:bg-slate-50'}>
+                            <tr 
+                                key={task.id} 
+                                onClick={() => setSelectedTaskId(task.id)}
+                                className={`${getRowStyle(task)} ${selectedTaskId === task.id ? 'ring-2 ring-blue-500 ring-inset' : ''}`}
+                            >
                                {task.isGroupHeader ? (
                                    <td colSpan={5} className="p-2 border">
                                        <input 
@@ -77,8 +139,8 @@ const TaskListTab: React.FC<TaskListTabProps> = ({ tasks, setTasks, isLoading })
                 </table>
             </div>
              <div className="p-2 border-t border-slate-200 flex space-x-2 flex-shrink-0">
-                <button className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1"><PlusIcon/> Thêm mới</button>
-                <button className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1"><TrashIcon/> Xóa</button>
+                <button onClick={handleAddTask} className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1"><PlusIcon/> Thêm mới</button>
+                <button onClick={handleDeleteTask} disabled={!selectedTaskId} className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"><TrashIcon/> Xóa</button>
                 <button className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1"><FileImportIcon/> Import từ File...</button>
             </div>
         </div>

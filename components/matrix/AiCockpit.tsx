@@ -1,6 +1,6 @@
 // components/matrix/AiCockpit.tsx
 import React, { useState, useRef, useEffect } from 'react';
-import { MatrixContextInput, ChatMessage, Department } from '../../types.ts';
+import { MatrixContextInput, ChatMessage, Department, Task } from '../../types.ts';
 import { suggestTasksForMatrix, generateCompanyMatrix, sendAiChat } from '../../services/geminiService.ts';
 import { SendIcon, PaperClipIcon } from '../icons.tsx';
 
@@ -25,6 +25,40 @@ interface AiCockpitProps {
     setAttachedFile: React.Dispatch<React.SetStateAction<File | null>>;
     onApplyToNote: (content: string) => void;
 }
+
+const formatMarkdownToHtml = (markdown: string): string => {
+    if (!markdown) return '';
+    // Process markdown line by line for lists, but handle inline formatting globally
+    let html = markdown
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+      .replace(/\*(.*?)\*/g, '<em>$1</em>');         // Italic
+  
+    const lines = html.split('\n');
+    let inList = false;
+    const processedLines = lines.map(line => {
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ')) {
+        const listItem = `<li>${trimmedLine.substring(2)}</li>`;
+        if (!inList) {
+          inList = true;
+          return `<ul>${listItem}`;
+        }
+        return listItem;
+      } else {
+        if (inList) {
+          inList = false;
+          return `</ul>${line}`;
+        }
+        return line;
+      }
+    });
+  
+    if (inList) {
+      processedLines.push('</ul>');
+    }
+  
+    return processedLines.join('<br />').replace(/<\/li><br \/>/g, '</li>').replace(/<\/ul><br \/>/g, '</ul>');
+  };
 
 const AiCockpit: React.FC<AiCockpitProps> = ({
     contextInputs, onContextChange, onTasksGenerated, onCompanyMatrixGenerated,
@@ -111,7 +145,13 @@ ${attachedFile ? `[TÀI LIỆU THAM KHẢO]: Người dùng đã đính kèm fil
         setIsLoading(false);
     };
 
-    const handleFileAttach = () => fileInputRef.current?.click();
+    const handleFileAttach = () => {
+        if (attachedFile) {
+            setAttachedFile(null);
+        } else {
+            fileInputRef.current?.click();
+        }
+    };
 
     const handleClearChat = () => {
         if(window.confirm('Bạn có chắc muốn xóa cuộc trò chuyện này?')) {
@@ -123,48 +163,38 @@ ${attachedFile ? `[TÀI LIỆU THAM KHẢO]: Người dùng đã đính kèm fil
     
     return (
         <div className="flex-[1.5] flex flex-col p-4 space-y-4 overflow-y-auto bg-slate-50">
-            {!isAiCockpitCollapsed && (
+            <div className={`collapsible-panel ${isAiCockpitCollapsed ? 'collapsed' : ''}`}>
                  <div>
                     <h2 className="text-base font-bold mb-2">Cung cấp Thông tin Ban đầu</h2>
-                    <div className="bg-white rounded-lg border border-slate-300">
-                        <table className="w-full text-sm">
-                            <thead className="bg-slate-100">
-                                <tr className="bg-slate-100">
-                                    <th className="p-2 text-left w-1/3 border-b">Câu hỏi Gợi ý</th>
-                                    <th className="p-2 text-left w-2/3 border-b">Câu trả lời của bạn</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {contextInputs.map((input, index) => (
-                                    <tr key={input.id}>
-                                        <td className={`p-2 border-r ${index < contextInputs.length -1 ? 'border-b' : ''} bg-blue-50 text-blue-800 font-semibold`}>{input.question}</td>
-                                        <td className={`p-1 ${index < contextInputs.length -1 ? 'border-b' : ''}`}>
-                                            <textarea 
-                                                value={input.answer}
-                                                onChange={(e) => onContextChange(input.id, e.target.value)}
-                                                className="w-full h-full border-none focus:ring-0 resize-none text-xs p-1"
-                                                rows={4}
-                                                disabled={isLoading}
-                                            />
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                     <div className="bg-white rounded-lg border border-slate-200 p-2 space-y-1">
+                        {contextInputs.map((input) => (
+                            <div key={input.id} className="grid grid-cols-3 gap-px">
+                                <div className="col-span-1 bg-slate-100 p-2 rounded-l-md text-slate-700 text-xs font-semibold flex items-center">{input.question}</div>
+                                <div className="col-span-2">
+                                    <textarea 
+                                        value={input.answer}
+                                        onChange={(e) => onContextChange(input.id, e.target.value)}
+                                        className="w-full h-full border border-slate-200 rounded-r-md text-xs p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                        rows={4}
+                                        disabled={isLoading}
+                                    />
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
-            )}
+            </div>
 
             <div className="flex items-center space-x-4">
-                <button onClick={handleGenerateTasks} disabled={isLoading} className={`flex-1 p-3 rounded-md text-white font-semibold transition-colors text-center ${isLoading ? 'bg-slate-400 cursor-wait' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                <button onClick={handleGenerateTasks} disabled={isLoading} className={`flex-1 p-3 rounded-md text-white font-semibold transition-colors text-center text-sm ${isLoading ? 'bg-slate-400 cursor-wait' : 'bg-blue-600 hover:bg-blue-700'}`}>
                     Bước 1: AI Gợi ý Nhiệm vụ
                 </button>
-                <button onClick={handleGenerateCompanyMatrix} disabled={isLoading || !tasksGenerated} className={`flex-1 p-3 rounded-md font-semibold transition-colors text-center ${isLoading || !tasksGenerated ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-slate-200 hover:bg-slate-300'}`}>
+                <button onClick={handleGenerateCompanyMatrix} disabled={isLoading || !tasksGenerated} className={`flex-1 p-3 rounded-md font-semibold transition-colors text-center text-sm ${isLoading || !tasksGenerated ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-slate-200 hover:bg-slate-300'}`}>
                    Bước 2: Tạo Ma trận Cấp Công ty
                 </button>
             </div>
 
-            {!isAiCockpitCollapsed && (
+            <div className={`collapsible-panel ${isAiCockpitCollapsed ? 'collapsed' : ''}`}>
                 <div className="flex items-center gap-4 text-xs">
                     <div>
                          <label className="font-semibold">Mức độ chi tiết:</label>
@@ -177,18 +207,23 @@ ${attachedFile ? `[TÀI LIỆU THAM KHẢO]: Người dùng đã đính kèm fil
                     </div>
                     <p className="text-slate-500">Kết quả sẽ được hiển thị ở các Tab bên trái.</p>
                 </div>
-            )}
+            </div>
 
-            <div className="flex-1 flex flex-col border-t pt-4">
+            <div className="flex-1 flex flex-col border-t pt-4 min-h-[300px]">
                  <h2 className="text-base font-bold mb-2">Cố vấn AI</h2>
                  <div className="flex-1 bg-white rounded-md p-2 border border-slate-200 overflow-y-auto min-h-[150px] space-y-3">
-                     {chatMessages.map((msg, index) => (
-                         <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-md p-3 rounded-lg shadow-sm ${msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-800'}`}>
-                                <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: msg.content.replace(/\n/g, '<br/>') }} />
+                     {chatMessages.map((msg, index) => {
+                        const contentHtml = msg.isMarkdown 
+                            ? formatMarkdownToHtml(msg.content) 
+                            : msg.content.replace(/\n/g, '<br/>');
+                         return (
+                            <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-xl p-3 rounded-lg shadow-sm ${msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-800'}`}>
+                                    <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: contentHtml }} />
+                                </div>
                             </div>
-                         </div>
-                     ))}
+                         );
+                     })}
                      {isLoading && <div className="text-slate-500 italic animate-pulse">AI đang suy nghĩ...</div>}
                      <div ref={messagesEndRef} />
                  </div>
@@ -211,8 +246,8 @@ ${attachedFile ? `[TÀI LIỆU THAM KHẢO]: Người dùng đã đính kèm fil
                     <button onClick={handleFileAttach} className="flex items-center gap-1 hover:text-blue-600 disabled:text-slate-400" disabled={isLoading}>
                         <PaperClipIcon/> {attachedFile ? `${attachedFile.name} (x)` : 'Đính kèm File'}
                     </button>
-                    <button onClick={() => setIsAiCockpitCollapsed(p => !p)} className="hover:text-blue-600">{isAiCockpitCollapsed ? 'Mở rộng Chat' : 'Thu gọn Chat'}</button>
-                    <button onClick={onApplyToNote} className="hover:text-blue-600 disabled:text-slate-400" disabled={!lastAiResponse}>Áp dụng vào Ghi chú</button>
+                    <button onClick={() => setIsAiCockpitCollapsed(p => !p)} className="hover:text-blue-600">{isAiCockpitCollapsed ? 'Thu gọn Chat' : 'Mở rộng Chat'}</button>
+                    <button onClick={() => onApplyToNote(lastAiResponse)} className="hover:text-blue-600 disabled:text-slate-400" disabled={!lastAiResponse}>Áp dụng vào Ghi chú</button>
                     <div className="relative">
                         <button onClick={() => setIsOptionsOpen(p => !p)} className="hover:text-blue-600">Tùy chọn...</button>
                         {isOptionsOpen && (
