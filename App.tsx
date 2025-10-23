@@ -8,7 +8,7 @@ import { MapIcon, TableCellsIcon, CheckCircleIcon } from './components/icons.tsx
 type View = 'cockpit' | 'matrix' | 'goals';
 
 const App: React.FC = () => {
-  const [activeView, setActiveView] = useState<View>('cockpit');
+  const [activeView, setActiveView] = useState<View>('matrix');
 
   const navItems = [
     { id: 'cockpit', icon: <MapIcon />, label: 'Bản đồ Chiến lược' },

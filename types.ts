@@ -88,10 +88,16 @@ export interface Task {
   rowNumber: number;
 }
 
+export interface Department {
+  code: string;
+  name: string;
+  priority: number;
+}
+
 export interface Role {
   id: string;
   name: string;
-  department: string;
+  departmentCode: string;
   title: string;
   email: string;
   phone: string;

@@ -1,5 +1,5 @@
 // constants.tsx
-import { StrategicModel, SixVariablesModel, Role, MatrixContextInput } from './types.ts';
+import { StrategicModel, SixVariablesModel, Role, MatrixContextInput, Department } from './types.ts';
 
 export const SIX_VARIABLES_QUESTIONS: { id: string; name: string; questions: string[] }[] = [
   {
@@ -120,12 +120,19 @@ export const INITIAL_SIX_VARIABLES_MODEL: SixVariablesModel = SIX_VARIABLES_QUES
 
 
 // Mock Data for Task Matrix
+export const MOCK_DEPARTMENTS: Department[] = [
+    { code: 'BGD', name: 'Ban Giám đốc', priority: 1 },
+    { code: 'KD', name: 'Kinh doanh', priority: 2 },
+    { code: 'TC', name: 'Tài chính', priority: 3 },
+    { code: 'NS', name: 'Nhân sự', priority: 4 },
+];
+
 export const MOCK_ROLES: Role[] = [
-    { id: 'gd', name: 'Giám đốc', department: 'Ban Giám đốc', title: 'Giám đốc Điều hành', email: 'gd@company.com', phone: '090-111-2222' },
-    { id: 'tkd', name: 'Trưởng phòng KD', department: 'Kinh doanh', title: 'Trưởng phòng', email: 'tp.kd@company.com', phone: '090-222-3333' },
-    { id: 'nvkd1', name: 'Nhân viên KD 1', department: 'Kinh doanh', title: 'Nhân viên Kinh doanh', email: 'nv.kd1@company.com', phone: '090-333-4444' },
-    { id: 'pkt', name: 'Kế toán trưởng', department: 'Tài chính', title: 'Kế toán trưởng', email: 'ktt@company.com', phone: '090-444-5555' },
-    { id: 'pns', name: 'Trưởng phòng NS', department: 'Nhân sự', title: 'Trưởng phòng', email: 'tp.ns@company.com', phone: '090-555-6666' },
+    { id: 'gd', name: 'Giám đốc', departmentCode: 'BGD', title: 'Giám đốc Điều hành', email: 'gd@company.com', phone: '090-111-2222' },
+    { id: 'tkd', name: 'Trưởng phòng KD', departmentCode: 'KD', title: 'Trưởng phòng', email: 'tp.kd@company.com', phone: '090-222-3333' },
+    { id: 'nvkd1', name: 'Nhân viên KD 1', departmentCode: 'KD', title: 'Nhân viên Kinh doanh', email: 'nv.kd1@company.com', phone: '090-333-4444' },
+    { id: 'pkt', name: 'Kế toán trưởng', departmentCode: 'TC', title: 'Kế toán trưởng', email: 'ktt@company.com', phone: '090-444-5555' },
+    { id: 'pns', name: 'Trưởng phòng NS', departmentCode: 'NS', title: 'Trưởng phòng', email: 'tp.ns@company.com', phone: '090-555-6666' },
 ];
 
 export const MATRIX_BUILDER_INITIAL_INPUTS: MatrixContextInput[] = [

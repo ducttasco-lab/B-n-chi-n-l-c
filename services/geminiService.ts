@@ -135,7 +135,7 @@ ${fullText}
 --- KẾT THÚC VĂN BẢN GỐC ---
 [NHIỆM VỤ]: Dựa vào văn bản trên, hãy rút ra câu trả lời hoặc kết luận chính, cốt lõi nhất để ghi vào một ô ghi chú. Nội dung phải súc tích, đi thẳng vào vấn đề và loại bỏ các câu chào hỏi, văn phong hội thoại.
 [ĐẦU RA]: Chỉ trả về đoạn văn bản tóm tắt. Không thêm bất kỳ lời dẫn nào.`;
-  return generateText(prompt);
+  return await generateText(prompt);
 };
 
 export const getInitiativeSummaryFromAI = async (fullText: string): Promise<string> => {
@@ -147,7 +147,7 @@ ${fullText}
 --- KẾT THÚC VĂN BẢN GỐC ---
 [NHIỆM VỤ]: Dựa vào văn bản trên, hãy tóm tắt nó thành một đoạn mô tả ngắn gọn (tối đa 3-4 câu) cho một 'Sáng kiến' hoặc 'Kế hoạch hành động' mới. Tập trung vào kết quả và hành động cần làm.
 [ĐẦU RA]: Chỉ trả về đoạn văn bản tóm tắt. Không thêm bất kỳ lời dẫn nào.`;
-  return generateText(prompt);
+  return await generateText(prompt);
 };
 
 
@@ -175,20 +175,14 @@ Trả về một mảng JSON. Mỗi object trong mảng phải có 4 khóa:
   return result?.map(kr => ({...kr, krId: `kr-${Date.now()}-${Math.random()}`})) || null;
 };
 
-// FIX: Added missing AI service functions to support the Task Matrix Builder feature.
 export const suggestTasksForMatrix = async (context: string, detailLevel: string): Promise<string | null> => {
     let detailLevelRequest = "";
-    switch(detailLevel) {
-        case 'Chi tiết':
-            detailLevelRequest = `[YÊU CẦU VỀ ĐỘ SÂU]: BẮT BUỘC phân cấp chi tiết đến cấp 4 nếu có thể.`;
-            break;
-        case 'Trung bình':
-            detailLevelRequest = `[YÊU CẦU VỀ ĐỘ SÂU]: BẮT BUỘC phân cấp chi tiết đến cấp 3 nếu có thể.`;
-            break;
-        case 'Cơ bản':
-        default:
-            detailLevelRequest = `[YÊU CẦU VỀ ĐỘ SÂU]: BẮT BUỘC phân cấp chi tiết đến cấp 2 nếu có thể.`;
-            break;
+     if (detailLevel.includes('2')) {
+        detailLevelRequest = `[YÊU CẦU VỀ ĐỘ SÂU]: BẮT BUỘC phân cấp chi tiết đến cấp 2 nếu có thể.`;
+    } else if (detailLevel.includes('3')) {
+        detailLevelRequest = `[YÊU CẦU VỀ ĐỘ SÂU]: BẮT BUỘC phân cấp chi tiết đến cấp 3 nếu có thể.`;
+    } else {
+        detailLevelRequest = "[YÊU CẦU VỀ ĐỘ SÂU]: Hãy phân cấp chi tiết đến mức tối đa mà bạn cho là hợp lý.";
     }
 
     const prompt = `[ĐÓNG VAI]: Bạn là một nhà tư vấn cấu trúc tổ chức bậc thầy, chuyên gia về mô hình quản trị của Fredmund Malik.
@@ -203,21 +197,21 @@ ${context}
 ${detailLevelRequest}
 
 [QUY TẮC ĐỊNH DẠNG BẮT BUỘC]:
-- **Chỉ tạo 5 cột:** 'MC1', 'MC2', 'MC3', 'MC4', 'Tên Nhiệm vụ'.
-- **Cột 'MC_':** Điền mã phân cấp tương ứng. Cấp 1 là mã chính (A1, B2). Các cấp sau chỉ là số.
-- **Cột 'Tên Nhiệm vụ':** KHÔNG được thêm số thứ tự vào đầu Tên Nhiệm vụ.
-- **Tiêu đề nhóm:** Các dòng tiêu đề nhóm công việc (ví dụ: 'NHIỆM VỤ QUẢN LÝ CHUNG') phải được in đậm, và các cột mã phải để trống.
+- **Chỉ tạo 2 cột:** 'Mã Phân cấp' và 'Tên Nhiệm vụ'.
+- **Cột 'Mã Phân cấp':** Sử dụng cấu trúc mã không có dấu chấm. Cấp 1 là một chữ cái và một chữ số (ví dụ: A1, B2). Các cấp con được tạo bằng cách thêm một chữ số (ví dụ: A11 là con của A1, A112 là con của A11).
+- **Cột 'Tên Nhiệm vụ':** KHÔNG được thêm số thứ tự (như 1.1, 1.1.1) vào đầu Tên Nhiệm vụ.
+- **Tiêu đề nhóm:** Các dòng tiêu đề nhóm công việc (ví dụ: 'NHIỆM VỤ QUẢN LÝ CHUNG') phải được in đậm, và cột 'Mã Phân cấp' phải để trống.
 
 [VÍ DỤ ĐỊNH DẠNG MONG MUỐN]:
-| MC1 | MC2 | MC3 | MC4 | Tên Nhiệm vụ |
-|---|---|---|---|---|
-| | | | | **NHIỆM VỤ QUẢN LÝ CHUNG** |
-| A1 | | | | Đề ra Mục tiêu |
-| A1 | 1 | | | Xác định Mục tiêu Chiến lược Cốt lõi |
-| A1 | 1 | 1 | | Phân rã mục tiêu 'Top 10 SME Auditor' |
+| Mã Phân cấp | Tên Nhiệm vụ |
+|---|---|
+| | **NHIỆM VỤ QUẢN LÝ CHUNG** |
+| A1 | Đề ra Mục tiêu |
+| A11 | Xác định Mục tiêu Chiến lược Cốt lõi |
+| A111| Phân rã mục tiêu 'Top 10 SME Auditor' |
 
 [ĐỊNH DẠNG ĐẦU RA BẮT BUỘC]:
-Chỉ trả về kết quả dưới dạng một BẢNG MARKDOWN duy nhất có 5 cột. KHÔNG thêm bất kỳ lời bình hay giải thích nào khác.`;
+Chỉ trả về kết quả dưới dạng một BẢNG MARKDOWN duy nhất có 2 cột. KHÔNG thêm bất kỳ lời bình hay giải thích nào khác.`;
 
     return await generateText(prompt);
 };
@@ -235,11 +229,11 @@ ${taskListMarkdown}
     - **Q (Quyết định):** Người chịu trách nhiệm cuối cùng, có quyền ra quyết định cao nhất.
     - **T (Thực hiện):** Người/bộ phận trực tiếp thực hiện công việc.
     - **K (Kiểm soát):** Người/bộ phận kiểm tra, giám sát chất lượng và tiến độ.
-    - **B (Báo cáo):** Người/bộ phận cần được thông báo, báo cáo kết quả.
     - **P (Phối hợp):** Người/bộ phận cần phối hợp, tham gia ý kiến.
+    - **B (Báo cáo):** Người/bộ phận cần được thông báo, báo cáo kết quả.
 - **Logic suy luận:** Hãy suy luận một cách logic dựa trên bản chất của công việc và chức năng của từng phòng ban để đưa ra phân công tối ưu nhất.
 - **Quy tắc vàng:** Luôn đảm bảo mỗi hàng (mỗi công việc chi tiết, không phải dòng tiêu đề) chỉ CÓ DUY NHẤT một chữ 'Q'.
-- **QUY TẮC ƯU TIÊN:** Đối với các nhiệm vụ quản lý cấp cao (thường có Mã A), vai trò 'Q' hoặc 'K' nên được ưu tiên gán cho 'Ban Giám đốc'. Đối với các nhiệm vụ tác nghiệp (Mã B), vai trò 'T' nên được gán cho các phòng ban chuyên môn.
+- **QUY TẮC ƯU TIÊN:** Đối với các nhiệm vụ quản lý cấp cao (thường có Mã A), vai trò 'Q' hoặc 'K' nên được ưu tiên gán cho 'Ban Giám đốc' hoặc 'Hội đồng thành viên'. Đối với các nhiệm vụ tác nghiệp (Mã B), vai trò 'T' nên được gán cho các phòng ban chuyên môn.
 [ĐỊNH DẠNG ĐẦU RA]: Chỉ trả về kết quả dưới dạng một BẢNG MARKDOWN duy nhất. KHÔNG thêm bất kỳ văn bản, lời giải thích hay bình luận nào khác.`;
 
     return await generateText(prompt);
@@ -247,23 +241,26 @@ ${taskListMarkdown}
 
 export const suggestDepartmentAssignments = async (
     departmentName: string,
-    tasks: string[],
+    tasks: {name: string, role: string}[],
     staff: string[],
     notes: string
 ): Promise<string | null> => {
+    const taskListString = tasks.map(t => `- ${t.name} (Vai trò phòng: ${t.role})`).join('\n');
+    
     const prompt = `[ĐÓNG VAI]: Bạn là một chuyên gia tư vấn tổ chức nhân sự, bậc thầy về việc xây dựng ma trận trách nhiệm QTKBP.
 [BỐI CẢNH]: Bạn cần phân công chi tiết các nhiệm vụ cho các nhân viên trong '${departmentName}'.
---- DANH SÁCH NHIỆM VỤ CẦN PHÂN CÔNG ---
-${tasks.map(t => `- ${t}`).join('\n')}
+--- DANH SÁCH NHIỆM VỤ CẦN PHÂN CÔNG & VAI TRÒ CỦA PHÒNG ---
+${taskListString}
 --- DANH SÁCH NHÂN SỰ TRONG PHÒNG ---
 ${staff.map(s => `- ${s}`).join('\n')}
 ${notes ? `--- GHI CHÚ BỔ SUNG TỪ NGƯỜI QUẢN LÝ ---\n${notes}` : ''}
 [NHIỆM VỤ]: Dựa vào TOÀN BỘ thông tin trên, hãy đề xuất phân công vai trò (Q, T, K, B, P) cho từng nhân viên vào từng nhiệm vụ.
 [QUY TẮC BẮT BUỘC]:
-1. Ưu tiên các chỉ dẫn trong 'GHI CHÚ BỔ SUNG' nếu có.
-2. Suy luận logic dựa trên tên nhiệm vụ và tên/chức vụ nhân viên.
-3. Mỗi nhiệm vụ phải có ít nhất một 'T' (Thực hiện).
-4. Mỗi nhiệm vụ chỉ nên có MỘT 'Q' (Quyết định).
+1. Vai trò của nhân viên phải phù hợp với vai trò chung của phòng ban. Ví dụ, nếu phòng là 'T', thì các nhân viên trong phòng sẽ chia nhau vai trò 'T', và có thể có một người là 'Q' trong phạm vi phòng đó.
+2. Ưu tiên các chỉ dẫn trong 'GHI CHÚ BỔ SUNG' nếu có.
+3. Suy luận logic dựa trên tên nhiệm vụ và tên/chức vụ nhân viên.
+4. Mỗi nhiệm vụ phải có ít nhất một 'T' (Thực hiện).
+5. Mỗi nhiệm vụ chỉ nên có MỘT 'Q' (Quyết định).
 [ĐỊNH DẠNG ĐẦU RA]: Chỉ trả về một BẢNG MARKDOWN duy nhất có 3 cột: 'Tên Nhiệm vụ', 'Tên Nhân viên', 'Vai trò'. KHÔNG thêm bất kỳ lời bình nào khác.`;
 
     return await generateText(prompt);
