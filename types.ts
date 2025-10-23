@@ -110,9 +110,13 @@ export interface MatrixContextInput {
 }
 
 
-// For Goal Manager
+// For Goal Manager & Other tools
 export interface UserTask {
     rowNumber: number;
+    mc1: string;
+    mc2: string;
+    mc3: string;
+    mc4: string;
     fullCode: string;
     taskName: string;
     role: string;
@@ -126,4 +130,14 @@ export interface Goal {
     goalDescription: string;
     krs: KeyResult[];
     status: 'Đang hoạt động' | 'Hoàn thành' | 'Tạm hoãn' | 'Đã hủy';
+}
+
+export interface AuditFinding {
+    taskId: string;
+    taskName: string;
+    mc1: string;
+    mc2: string;
+    mc3: string;
+    mc4: string;
+    findingType: string;
 }

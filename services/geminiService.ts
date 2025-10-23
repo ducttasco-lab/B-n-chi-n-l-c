@@ -1,7 +1,7 @@
 // services/geminiService.ts
 import { GoogleGenAI, GenerateContentResponse, Content } from "@google/genai";
 // FIX: Added StrategicNode and SixVariablesNode to the import.
-import { StrategicModel, SixVariablesModel, KeyResult, StrategicNode, SixVariablesNode } from '../types.ts';
+import { StrategicModel, SixVariablesModel, KeyResult, StrategicNode, SixVariablesNode, Task } from '../types.ts';
 
 const API_KEY = process.env.API_KEY;
 
@@ -10,6 +10,46 @@ if (!API_KEY) {
 }
 
 const ai = new GoogleGenAI({ apiKey: API_KEY! });
+
+const fileToBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const base64String = (reader.result as string).split(',')[1];
+      resolve(base64String);
+    };
+    reader.onerror = (error) => reject(error);
+  });
+
+export const sendAiChat = async (prompt: string, file?: File): Promise<string> => {
+  if (!API_KEY) return "AI features are disabled because the API key is not configured.";
+  try {
+    const parts: any[] = [{ text: prompt }];
+
+    if (file) {
+        const base64Data = await fileToBase64(file);
+        parts.push({
+            inlineData: {
+                mimeType: file.type,
+                data: base64Data,
+            },
+        });
+    }
+
+    const contents: Content = { parts: parts };
+
+    const response: GenerateContentResponse = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: contents,
+    });
+    return response.text;
+  } catch (error) {
+    console.error("Error in AI chat:", error);
+    return `Sorry, I encountered an error: ${error instanceof Error ? error.message : String(error)}`;
+  }
+};
+
 
 export const generateText = async (prompt: string): Promise<string> => {
   if (!API_KEY) return "AI features are disabled because the API key is not configured.";

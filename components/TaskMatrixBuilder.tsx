@@ -1,6 +1,6 @@
 // components/TaskMatrixBuilder.tsx
 import React, { useState, useMemo } from 'react';
-import { Task, Role, Department, MatrixContextInput } from '../types.ts';
+import { Task, Role, Department, MatrixContextInput, ChatMessage } from '../types.ts';
 import { MOCK_ROLES, MOCK_DEPARTMENTS, MATRIX_BUILDER_INITIAL_INPUTS } from '../constants.tsx';
 import AiCockpit from './matrix/AiCockpit.tsx';
 import TaskListTab from './matrix/TaskListTab.tsx';
@@ -28,6 +28,12 @@ const TaskMatrixBuilder: React.FC = () => {
     const [roles, setRoles] = useState<Role[]>(MOCK_ROLES);
     const [companyMatrixAssignments, setCompanyMatrixAssignments] = useState<Record<string, Record<string, string>>>({});
     const [departmentalAssignments, setDepartmentalAssignments] = useState<Record<string, Record<string, string>>>({});
+
+    // New state for AI Advisor
+    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+    const [lastAiResponse, setLastAiResponse] = useState<string>('');
+    const [isAiCockpitCollapsed, setIsAiCockpitCollapsed] = useState(false);
+    const [attachedFile, setAttachedFile] = useState<File | null>(null);
     
     const handleContextChange = (id: number, answer: string) => {
         setContextInputs(prevInputs => 
@@ -35,6 +41,15 @@ const TaskMatrixBuilder: React.FC = () => {
                 input.id === id ? { ...input, answer } : input
             )
         );
+    };
+
+    const handleApplyToNote = (content: string) => {
+        const targetInput = contextInputs.find(i => !i.answer.trim() || i.answer.startsWith("VD:")) || contextInputs[contextInputs.length - 1];
+        if (targetInput) {
+            const currentAnswer = targetInput.answer.startsWith("VD:") ? '' : targetInput.answer;
+            handleContextChange(targetInput.id, (currentAnswer ? currentAnswer + '\n\n' : '') + `[AI Ghi chú]:\n${content}`);
+        }
+        alert('Đã áp dụng ghi chú vào ô thông tin ban đầu.');
     };
 
     const handleTasksGenerated = (markdown: string) => {
@@ -57,9 +72,9 @@ const TaskMatrixBuilder: React.FC = () => {
                     const letter = hierarchicalCode.substring(0,1);
                     const numbers = hierarchicalCode.substring(1);
                     if (numbers.length >= 1) mc1 = letter + numbers.substring(0, 1);
-                    if (numbers.length >= 2) mc2 = mc1 + numbers.substring(1, 2);
-                    if (numbers.length >= 3) mc3 = mc2 + numbers.substring(2, 3);
-                    if (numbers.length >= 4) mc4 = mc3 + numbers.substring(3, 4);
+                    if (numbers.length >= 2) mc2 = letter + numbers.substring(0, 2);
+                    if (numbers.length >= 3) mc3 = letter + numbers.substring(0, 3);
+                    if (numbers.length >= 4) mc4 = letter + numbers.substring(0, 4);
                 }
 
                 return {
@@ -148,9 +163,9 @@ const TaskMatrixBuilder: React.FC = () => {
                         </div>
                     </div>
                 );
-            case 'view-tasks': return <TaskDashboardTab />;
-            case 'lookup': return <ProcessLookupTab />;
-            case 'audit': return <MatrixAuditTab />;
+            case 'view-tasks': return <TaskDashboardTab tasks={tasks} roles={roles} departments={departments} companyAssignments={companyMatrixAssignments} departmentalAssignments={departmentalAssignments} />;
+            case 'lookup': return <ProcessLookupTab tasks={tasks} />;
+            case 'audit': return <MatrixAuditTab tasks={tasks} roles={roles} companyAssignments={companyMatrixAssignments} departmentalAssignments={departmentalAssignments} />;
             default: return <div className="p-4 text-slate-500">Chức năng này đang được xây dựng.</div>;
         }
     };
@@ -179,7 +194,16 @@ const TaskMatrixBuilder: React.FC = () => {
                     setIsLoading={setIsLoading}
                     tasksGenerated={tasks.length > 0}
                     generatedTaskMarkdown={generatedTaskMarkdown}
-                    departments={departments.sort((a,b) => a.priority - b.priority).map(d => d.name)}
+                    departments={departments.sort((a,b) => a.priority - b.priority)}
+                    chatMessages={chatMessages}
+                    setChatMessages={setChatMessages}
+                    lastAiResponse={lastAiResponse}
+                    setLastAiResponse={setLastAiResponse}
+                    isAiCockpitCollapsed={isAiCockpitCollapsed}
+                    setIsAiCockpitCollapsed={setIsAiCockpitCollapsed}
+                    attachedFile={attachedFile}
+                    setAttachedFile={setAttachedFile}
+                    onApplyToNote={handleApplyToNote}
                 />
             </div>
         </div>
