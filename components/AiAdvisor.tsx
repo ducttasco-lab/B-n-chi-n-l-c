@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage, StrategicModel, SixVariablesModel } from '../types.ts';
 import { getFullContextFromModel, generateText } from '../services/geminiService.ts';
 import { SparklesIcon, SendIcon } from './icons.tsx';
+import { formatMarkdownToHtml } from '../utils/markdown.ts';
 
 interface AiAdvisorProps {
   strategicModel: StrategicModel;
@@ -76,18 +77,14 @@ ${historyForPrompt}
 
   const MessageBubble: React.FC<{ msg: ChatMessage }> = ({ msg }) => {
     const isUser = msg.role === 'user';
-    // Basic markdown to HTML for presentation
-    const formatContent = (content: string) => {
-        if (!msg.isMarkdown) return content.replace(/\n/g, '<br/>');
-        return content
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\n/g, '<br/>');
-    };
+    const contentHtml = msg.isMarkdown
+      ? formatMarkdownToHtml(msg.content)
+      : msg.content.replace(/\n/g, '<br />');
 
     return (
         <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-md p-3 rounded-lg shadow-sm ${isUser ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-800'}`}>
-                <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: formatContent(msg.content) }} />
+                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: contentHtml }} />
             </div>
         </div>
     );

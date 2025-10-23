@@ -1,5 +1,5 @@
 // components/cockpit/StrategyBoardTab.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StrategicModel, StrategyReport, SixVariablesModel, StrategicNode } from '../../types.ts';
 import { SparklesIcon } from '../icons.tsx';
 import { getFullContextFromModel, generateJsonResponse } from '../../services/geminiService.ts';
@@ -7,7 +7,7 @@ import { getFullContextFromModel, generateJsonResponse } from '../../services/ge
 interface StrategyBoardTabProps {
     strategicModel: StrategicModel;
     sixVariablesModel: SixVariablesModel;
-    triggerGeneration?: number;
+    shouldStartGeneration: boolean;
     report: StrategyReport | null;
     setReport: (report: StrategyReport | null) => void;
 }
@@ -42,12 +42,11 @@ const DataGrid: React.FC<{data: any[], title?: string}> = ({ data, title }) => {
 };
 
 
-const StrategyBoardTab: React.FC<StrategyBoardTabProps> = ({ strategicModel, sixVariablesModel, triggerGeneration, report, setReport }) => {
+const StrategyBoardTab: React.FC<StrategyBoardTabProps> = ({ strategicModel, sixVariablesModel, shouldStartGeneration, report, setReport }) => {
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleGenerateReport = async () => {
+    const handleGenerateReport = useCallback(async () => {
         setIsLoading(true);
-        setReport(null);
         const context = getFullContextFromModel(strategicModel, sixVariablesModel);
         
         const prompt = `[ĐÓNG VAI]: Bạn là một nhà tư vấn quản trị cấp cao, có khả năng tổng hợp các vấn đề phức tạp thành một báo cáo chiến lược súc tích, rõ ràng và mang tính định hướng.
@@ -79,13 +78,13 @@ ${context}
             alert("AI không thể tạo báo cáo. Vui lòng thử lại.");
         }
         setIsLoading(false);
-    };
+    }, [strategicModel, sixVariablesModel, setReport]);
 
     useEffect(() => {
-        if (triggerGeneration && triggerGeneration > 0) {
+        if (shouldStartGeneration) {
             handleGenerateReport();
         }
-    }, [triggerGeneration]);
+    }, [shouldStartGeneration, handleGenerateReport]);
     
     const getInitiativesForReport = () => {
         if (!report?.strategicFocusAreas) return [];

@@ -38,6 +38,10 @@ const StrategicCockpit: React.FC = () => {
     const [report18Factors, setReport18Factors] = useState<ReportItem[]>([]);
     const [report6Variables, setReport6Variables] = useState<ReportItem[]>([]);
     const [strategyBoardReport, setStrategyBoardReport] = useState<StrategyReport | null>(null);
+
+    const lastTrigger18Ref = useRef(0);
+    const lastTrigger6Ref = useRef(0);
+    const lastTriggerBoardRef = useRef(0);
     
     // AI Advisor state
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -147,9 +151,22 @@ const StrategicCockpit: React.FC = () => {
     };
 
 
-    const handleDiagnoseVariables = async () => {
+    const handleDiagnoseVariables = () => {
+        setReport6Variables([]);
         setActiveTab('analysis-6');
         setTrigger6Variables(Date.now());
+    };
+
+    const handleAnalyze18Factors = () => {
+        setReport18Factors([]);
+        setActiveTab('analysis-18');
+        setTrigger18Factors(Date.now());
+    };
+
+    const handleGenerateStrategyBoard = () => {
+        setStrategyBoardReport(null);
+        setActiveTab('strategy-board');
+        setTriggerStrategyBoard(Date.now());
     };
     
     const handleSaveNotes = () => {
@@ -166,6 +183,22 @@ const StrategicCockpit: React.FC = () => {
         setIsOptionsOpen(false);
     };
 
+    // Logic to create single-use triggers for report generation
+    const shouldStart18 = trigger18Factors > lastTrigger18Ref.current;
+    if (shouldStart18) {
+        lastTrigger18Ref.current = trigger18Factors;
+    }
+
+    const shouldStart6 = trigger6Variables > lastTrigger6Ref.current;
+    if (shouldStart6) {
+        lastTrigger6Ref.current = trigger6Variables;
+    }
+
+    const shouldStartBoard = triggerStrategyBoard > lastTriggerBoardRef.current;
+    if (shouldStartBoard) {
+        lastTriggerBoardRef.current = triggerStrategyBoard;
+    }
+
 
     const renderTabContent = () => {
         switch (activeTab) {
@@ -180,14 +213,14 @@ const StrategicCockpit: React.FC = () => {
                 return <StrategyBoardTab 
                             strategicModel={strategicModel} 
                             sixVariablesModel={sixVariablesModel} 
-                            triggerGeneration={triggerStrategyBoard} 
+                            shouldStartGeneration={shouldStartBoard} 
                             report={strategyBoardReport}
                             setReport={setStrategyBoardReport}
                         />;
             case 'analysis-18':
-                return <AnalysisReportTab title="Phân tích 18 Yếu tố" reportContent={report18Factors} setReportContent={setReport18Factors} strategicModel={strategicModel} sixVariablesModel={sixVariablesModel} analysisType="18factors" triggerGeneration={trigger18Factors} />;
+                return <AnalysisReportTab title="Phân tích 18 Yếu tố" reportContent={report18Factors} setReportContent={setReport18Factors} strategicModel={strategicModel} sixVariablesModel={sixVariablesModel} analysisType="18factors" shouldStartGeneration={shouldStart18} />;
             case 'analysis-6':
-                 return <AnalysisReportTab title="Chẩn đoán 6 Biến số" reportContent={report6Variables} setReportContent={setReport6Variables} strategicModel={strategicModel} sixVariablesModel={sixVariablesModel} analysisType="6variables" triggerGeneration={trigger6Variables} />;
+                 return <AnalysisReportTab title="Chẩn đoán 6 Biến số" reportContent={report6Variables} setReportContent={setReport6Variables} strategicModel={strategicModel} sixVariablesModel={sixVariablesModel} analysisType="6variables" shouldStartGeneration={shouldStart6} />;
             case 'map':
             default:
                 return <MapAndDiagnosisTab strategicModel={strategicModel} sixVariablesModel={sixVariablesModel} selectedNodeId={selectedNodeId} selectedVariableId={selectedVariableId} onNodeSelect={handleNodeSelect} onVariableSelect={handleVariableSelect} />;
@@ -261,9 +294,9 @@ const StrategicCockpit: React.FC = () => {
                             <div className="grid grid-cols-3 gap-2 text-sm">
                                 <button onClick={handleSaveNotes} className="p-2 bg-slate-200 rounded hover:bg-slate-300">Lưu Ghi chú</button>
                                 <button onClick={() => setIsFillerOpen(true)} className="p-2 bg-slate-200 rounded hover:bg-slate-300">AI Điền Dữ liệu...</button>
-                                <button onClick={() => { setActiveTab('analysis-18'); setTrigger18Factors(Date.now()); }} className="p-2 bg-slate-200 rounded hover:bg-slate-300">AI Phân tích 18 Yếu tố</button>
+                                <button onClick={handleAnalyze18Factors} className="p-2 bg-slate-200 rounded hover:bg-slate-300">AI Phân tích 18 Yếu tố</button>
                                 <button onClick={handleDiagnoseVariables} className="p-2 bg-slate-200 rounded hover:bg-slate-300">AI Chẩn đoán 6 Biến số</button>
-                                <button onClick={() => { setActiveTab('strategy-board'); setTriggerStrategyBoard(Date.now()); }} className="p-2 bg-slate-200 rounded hover:bg-slate-300 col-span-2">AI Tổng hợp Bảng Chiến lược</button>
+                                <button onClick={handleGenerateStrategyBoard} className="p-2 bg-slate-200 rounded hover:bg-slate-300 col-span-2">AI Tổng hợp Bảng Chiến lược</button>
                             </div>
                         </div>
                     </div>
