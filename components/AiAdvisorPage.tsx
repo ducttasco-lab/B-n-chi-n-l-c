@@ -224,7 +224,7 @@ ${historyForPrompt}
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-slate-50">
+    <div className="flex flex-col h-full w-full bg-slate-200">
       <header className="flex items-center justify-between p-4 border-b border-slate-200 flex-shrink-0 bg-white">
         <div className="flex items-center space-x-3">
           <SparklesIcon />

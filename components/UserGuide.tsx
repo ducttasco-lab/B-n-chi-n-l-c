@@ -19,7 +19,7 @@ const GuideCard: React.FC<{ icon: React.ReactNode, title: string, children: Reac
 
 const UserGuide: React.FC = () => {
   return (
-    <div className="h-full flex flex-col bg-slate-50 p-6 overflow-y-auto">
+    <div className="h-full flex flex-col bg-slate-200 p-6 overflow-y-auto">
       <h2 className="text-2xl font-bold text-slate-800 mb-6">Hướng dẫn Sử dụng AI Assistant</h2>
 
       <div className="space-y-6 max-w-4xl mx-auto">

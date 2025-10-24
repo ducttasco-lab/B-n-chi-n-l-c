@@ -45,7 +45,7 @@ const AiSettings: React.FC = () => {
     };
 
     return (
-        <div className="h-full flex flex-col bg-slate-50">
+        <div className="h-full flex flex-col bg-slate-200">
             <header className="flex-shrink-0 bg-white p-4 border-b border-slate-200">
                 <h2 className="text-xl font-bold text-slate-800">Cài đặt Mô hình AI</h2>
             </header>

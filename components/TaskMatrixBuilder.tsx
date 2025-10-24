@@ -1,12 +1,11 @@
 // components/TaskMatrixBuilder.tsx
 import React, { useState, useMemo, useEffect } from 'react';
 import { Task, Role, Department, MatrixContextInput, ChatMessage, VersionData, VersionInfo } from '../types.ts';
-import { MOCK_ROLES, MOCK_DEPARTMENTS, MATRIX_BUILDER_INITIAL_INPUTS } from '../constants.tsx';
+import { MATRIX_BUILDER_INITIAL_INPUTS } from '../constants.tsx';
 import AiCockpit from './matrix/AiCockpit.tsx';
 import TaskListTab from './matrix/TaskListTab.tsx';
 import CompanyMatrixTab from './matrix/CompanyMatrixTab.tsx';
 import DepartmentAssignmentTab from './matrix/DepartmentAssignmentTab.tsx';
-import PersonnelManagerTab from './matrix/PersonnelManagerTab.tsx';
 import VersionManagerTab from './matrix/VersionManagerTab.tsx';
 import TaskDashboardTab from './matrix/TaskDashboardTab.tsx';
 import ProcessLookupTab from './matrix/ProcessLookupTab.tsx';
@@ -15,9 +14,14 @@ import * as versionManager from '../services/versionManager.ts';
 
 
 type MainTab = 'cockpit' | 'view-tasks' | 'lookup' | 'audit';
-type CockpitTab = 'tasks' | 'company-matrix' | 'detail-assignment' | 'personnel' | 'versions';
+type CockpitTab = 'tasks' | 'company-matrix' | 'detail-assignment' | 'versions';
 
-const TaskMatrixBuilder: React.FC = () => {
+interface TaskMatrixBuilderProps {
+    departments: Department[];
+    roles: Role[];
+}
+
+const TaskMatrixBuilder: React.FC<TaskMatrixBuilderProps> = ({ departments, roles }) => {
     const [activeMainTab, setActiveMainTab] = useState<MainTab>('cockpit');
     const [activeCockpitTab, setActiveCockpitTab] = useState<CockpitTab>('tasks');
     const [isLoading, setIsLoading] = useState(false);
@@ -26,8 +30,6 @@ const TaskMatrixBuilder: React.FC = () => {
     const [contextInputs, setContextInputs] = useState<MatrixContextInput[]>(MATRIX_BUILDER_INITIAL_INPUTS);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [generatedTaskMarkdown, setGeneratedTaskMarkdown] = useState('');
-    const [departments, setDepartments] = useState<Department[]>(MOCK_DEPARTMENTS);
-    const [roles, setRoles] = useState<Role[]>(MOCK_ROLES);
     const [companyMatrixAssignments, setCompanyMatrixAssignments] = useState<Record<string, Record<string, string>>>({});
     const [departmentalAssignments, setDepartmentalAssignments] = useState<Record<string, Record<string, string>>>({});
 
@@ -49,8 +51,6 @@ const TaskMatrixBuilder: React.FC = () => {
             setCompanyMatrixAssignments(activeData.companyAssignments || {});
             setDepartmentalAssignments(activeData.departmentalAssignments || {});
             setGeneratedTaskMarkdown(activeData.generatedTaskMarkdown || '');
-            setDepartments(activeData.departments || MOCK_DEPARTMENTS);
-            setRoles(activeData.roles || MOCK_ROLES);
             console.log("Loaded active matrix from storage.");
         }
         setVersions(versionManager.getVersions());
@@ -174,7 +174,7 @@ const TaskMatrixBuilder: React.FC = () => {
             };
             const newVersions = versionManager.saveVersion(versionName.trim(), versionData);
             setVersions(newVersions);
-            alert(`Đã lưu thành công phiên bản '${versionName.trim()}'.\nBạn có thể xem lại trong tab '5. Quản lý Phiên bản'.`);
+            alert(`Đã lưu thành công phiên bản '${versionName.trim()}'.\nBạn có thể xem lại trong tab '4. Quản lý Phiên bản'.`);
         }
     };
 
@@ -184,8 +184,8 @@ const TaskMatrixBuilder: React.FC = () => {
             setCompanyMatrixAssignments(data.companyAssignments);
             setDepartmentalAssignments(data.departmentalAssignments);
             setGeneratedTaskMarkdown(data.generatedTaskMarkdown);
-            setDepartments(data.departments);
-            setRoles(data.roles);
+            // Departments and roles are now managed globally, so we don't load them here
+            // to avoid overwriting company settings.
             setActiveCockpitTab('tasks');
             alert("Đã tải phiên bản thành công vào buồng lái.");
         }
@@ -226,7 +226,6 @@ const TaskMatrixBuilder: React.FC = () => {
             case 'tasks': return <TaskListTab tasks={tasks} setTasks={setTasks} isLoading={isLoading} />;
             case 'company-matrix': return <CompanyMatrixTab tasks={tasks} setTasks={setTasks} departments={departments} assignments={companyMatrixAssignments} onSaveVersion={handleSaveVersion} onActivateMatrix={handleActivateMatrix} />;
             case 'detail-assignment': return <DepartmentAssignmentTab tasks={tasks} roles={roles} departments={departments} allAssignments={departmentalAssignments} setAllAssignments={setDepartmentalAssignments} companyAssignments={companyMatrixAssignments} onSaveVersion={handleSaveVersion} onActivateMatrix={handleActivateMatrix} />;
-            case 'personnel': return <PersonnelManagerTab departments={departments} setDepartments={setDepartments} roles={roles} setRoles={setRoles} />;
             case 'versions': return <VersionManagerTab versions={versions} onLoadVersion={handleLoadVersion} onRenameVersion={handleRenameVersion} onDeleteVersion={handleDeleteVersion} roles={roles} departments={departments}/>;
             default: return null;
         }
@@ -239,7 +238,7 @@ const TaskMatrixBuilder: React.FC = () => {
                     <div className="flex-1 flex flex-col min-h-0">
                         <div className="border-b border-slate-200 flex-shrink-0">
                              <div className="flex space-x-1 px-2 overflow-x-auto">
-                                {[{id: 'tasks', label: '1. DS Công việc'}, {id: 'company-matrix', label: '2. Ma trận Cấp Công ty'}, {id: 'detail-assignment', label: '3. Phân nhiệm Chi tiết'}, {id: 'personnel', label: '4. Quản lý Nhân sự'}, {id: 'versions', label: '5. Quản lý Phiên bản'}].map(tab => (
+                                {[{id: 'tasks', label: '1. DS Công việc'}, {id: 'company-matrix', label: '2. Ma trận Cấp Công ty'}, {id: 'detail-assignment', label: '3. Phân nhiệm Chi tiết'}, {id: 'versions', label: '4. Quản lý Phiên bản'}].map(tab => (
                                     <button key={tab.id} onClick={() => setActiveCockpitTab(tab.id as CockpitTab)} className={`px-3 py-2 text-sm font-medium whitespace-nowrap ${activeCockpitTab === tab.id ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
                                         {tab.label}
                                     </button>
