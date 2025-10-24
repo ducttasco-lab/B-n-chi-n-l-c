@@ -193,7 +193,7 @@ const PersonnelManagerTab: React.FC<PersonnelManagerTabProps> = ({ departments, 
             
             {/* Save Button */}
             <div className="flex-shrink-0 flex justify-end items-center gap-4 p-2">
-                <p className="text-xs text-slate-500">Kéo thả các dòng trong bảng Phòng ban để thay đổi thứ tự ưu tiên hiển thị.</p>
+                <p className="text-sm text-slate-500">Kéo thả các dòng trong bảng Phòng ban để thay đổi thứ tự ưu tiên hiển thị.</p>
                 <button onClick={handleSave} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold">Lưu & Đồng bộ</button>
             </div>
         </div>

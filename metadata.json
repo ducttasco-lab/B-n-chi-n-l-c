@@ -1,5 +1,7 @@
 {
   "name": "Copy of Strategic Matrix AI Assistant",
   "description": "A web application to visualize strategic maps, build task matrices, and manage personal goals with the assistance of an AI advisor. This tool helps in translating high-level strategy into actionable tasks and trackable objectives.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }

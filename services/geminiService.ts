@@ -208,10 +208,12 @@ export const suggestKPIs = async (taskName: string, objective: string): Promise<
 
 export const suggestTasksForMatrix = async (context: string, detailLevel: string): Promise<string | null> => {
     let detailLevelRequest = "";
-     if (detailLevel.includes('2')) {
-        detailLevelRequest = `[YÊU CẦU VỀ ĐỘ SÂU]: BẮT BUỘC phân cấp chi tiết đến cấp 2 nếu có thể.`;
+    if (detailLevel.includes('4')) {
+        detailLevelRequest = `[YÊU CẦU VỀ ĐỘ SÂU]: BẮT BUỘC phân cấp chi tiết đến cấp 4 nếu có thể.`;
     } else if (detailLevel.includes('3')) {
         detailLevelRequest = `[YÊU CẦU VỀ ĐỘ SÂU]: BẮT BUỘC phân cấp chi tiết đến cấp 3 nếu có thể.`;
+    } else if (detailLevel.includes('2')) {
+        detailLevelRequest = `[YÊU CẦU VỀ ĐỘ SÂU]: BẮT BUỘC phân cấp chi tiết đến cấp 2 nếu có thể.`;
     } else {
         detailLevelRequest = "[YÊU CẦU VỀ ĐỘ SÂU]: Hãy phân cấp chi tiết đến mức tối đa mà bạn cho là hợp lý.";
     }

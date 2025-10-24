@@ -225,8 +225,7 @@ const TaskMatrixBuilder: React.FC = () => {
         switch(activeCockpitTab) {
             case 'tasks': return <TaskListTab tasks={tasks} setTasks={setTasks} isLoading={isLoading} />;
             case 'company-matrix': return <CompanyMatrixTab tasks={tasks} setTasks={setTasks} departments={departments} assignments={companyMatrixAssignments} onSaveVersion={handleSaveVersion} onActivateMatrix={handleActivateMatrix} />;
-            // FIX: Replaced undefined `setAllAssignments` with the correct state setter `setDepartmentalAssignments`.
-            case 'detail-assignment': return <DepartmentAssignmentTab tasks={tasks} roles={roles} departments={departments} allAssignments={departmentalAssignments} setAllAssignments={setDepartmentalAssignments} companyAssignments={companyMatrixAssignments} />;
+            case 'detail-assignment': return <DepartmentAssignmentTab tasks={tasks} roles={roles} departments={departments} allAssignments={departmentalAssignments} setAllAssignments={setDepartmentalAssignments} companyAssignments={companyMatrixAssignments} onSaveVersion={handleSaveVersion} onActivateMatrix={handleActivateMatrix} />;
             case 'personnel': return <PersonnelManagerTab departments={departments} setDepartments={setDepartments} roles={roles} setRoles={setRoles} />;
             case 'versions': return <VersionManagerTab versions={versions} onLoadVersion={handleLoadVersion} onRenameVersion={handleRenameVersion} onDeleteVersion={handleDeleteVersion} roles={roles} departments={departments}/>;
             default: return null;
@@ -260,7 +259,7 @@ const TaskMatrixBuilder: React.FC = () => {
     };
 
     return (
-        <div className="h-full flex flex-col bg-white text-slate-800">
+        <div className="h-full flex flex-col bg-white text-slate-800 text-sm">
              <header className="flex-shrink-0 p-3 border-b border-slate-200 flex space-x-2 overflow-x-auto">
                  {[{id: 'cockpit', label: 'Xây dựng Ma trận phân nhiệm'}, {id: 'view-tasks', label: 'Xem Nhiệm vụ'}, {id: 'lookup', label: 'Tra cứu Quy trình'}, {id: 'audit', label: 'Kiểm tra Ma trận'}].map(tab => (
                     <button key={tab.id} onClick={() => setActiveMainTab(tab.id as MainTab)} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeMainTab === tab.id ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>

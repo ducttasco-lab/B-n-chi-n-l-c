@@ -1,13 +1,14 @@
 // components/GoalManager.tsx
 import React, { useState } from 'react';
-import { Goal, Department, Role, UserTask } from '../types.ts';
-import { MOCK_GOALS, MOCK_DEPARTMENTS, MOCK_ROLES, MOCK_USER_TASKS } from '../constants.tsx';
+import { Goal, Department, Role, UserTask, PredefinedKPI } from '../types.ts';
+import { MOCK_GOALS, MOCK_DEPARTMENTS, MOCK_ROLES, MOCK_USER_TASKS, MOCK_PREDEFINED_KPIS } from '../constants.tsx';
 import GoalSetupTab from './goal/GoalSetupTab.tsx';
 import GoalTrackingTab from './goal/GoalTrackingTab.tsx';
 import GoalDashboardTab from './goal/GoalDashboardTab.tsx';
-import { TargetIcon, ListChecksIcon, TrophyIcon } from './icons.tsx';
+import KpiLibraryManagerTab from './goal/KpiLibraryManagerTab.tsx';
+import { TargetIcon, ListChecksIcon, TrophyIcon, BookOpenIcon } from './icons.tsx';
 
-type GoalTab = 'setup' | 'tracking' | 'dashboard';
+type GoalTab = 'setup' | 'tracking' | 'dashboard' | 'kpi-library';
 
 const GoalManager: React.FC = () => {
     const [activeTab, setActiveTab] = useState<GoalTab>('setup');
@@ -18,11 +19,13 @@ const GoalManager: React.FC = () => {
     const [departments] = useState<Department[]>(MOCK_DEPARTMENTS);
     const [roles] = useState<Role[]>(MOCK_ROLES);
     const [userTasks] = useState<UserTask[]>(MOCK_USER_TASKS);
+    const [predefinedKpis, setPredefinedKpis] = useState<PredefinedKPI[]>(MOCK_PREDEFINED_KPIS);
 
     const tabs = [
         { id: 'setup', label: 'Thiết lập Mục tiêu', icon: <TargetIcon className="w-5 h-5 mr-2" /> },
         { id: 'tracking', label: 'Theo dõi Tiến độ', icon: <ListChecksIcon className="w-5 h-5 mr-2" /> },
         { id: 'dashboard', label: 'Bảng tổng hợp Kết quả', icon: <TrophyIcon className="w-5 h-5 mr-2" /> },
+        { id: 'kpi-library', label: 'Quản lý Thư viện KPI', icon: <BookOpenIcon className="w-5 h-5 mr-2" /> },
     ];
     
     const renderContent = () => {
@@ -34,6 +37,7 @@ const GoalManager: React.FC = () => {
                             departments={departments}
                             roles={roles}
                             userTasks={userTasks}
+                            predefinedKpis={predefinedKpis}
                         />;
             case 'tracking':
                 return <GoalTrackingTab 
@@ -43,8 +47,9 @@ const GoalManager: React.FC = () => {
                             roles={roles}
                         />;
             case 'dashboard':
-                 // FIX: Added missing 'departments' and 'roles' props to GoalDashboardTab.
                  return <GoalDashboardTab goals={goals} departments={departments} roles={roles} />;
+            case 'kpi-library':
+                 return <KpiLibraryManagerTab kpis={predefinedKpis} setKpis={setPredefinedKpis} />;
             default:
                 return null;
         }

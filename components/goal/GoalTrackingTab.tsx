@@ -189,13 +189,13 @@ const YearlyView: React.FC<{goals: Goal[]}> = ({ goals }) => {
                 return (
                     <div key={goal.goalId} className="bg-white border border-slate-200 rounded-lg shadow-sm p-4">
                         <h4 className="font-bold text-blue-800">{goal.goalDescription}</h4>
-                        <p className="text-xs text-slate-500 mb-2">Nhân viên: {goal.employeeName} | Nhiệm vụ: {goal.linkedTaskName}</p>
+                        <p className="text-sm text-slate-500 mb-2">Nhân viên: {goal.employeeName} | Nhiệm vụ: {goal.linkedTaskName}</p>
                         <div className="flex items-center gap-4">
                             <div className="relative flex-1">
                                 <div className="w-full bg-slate-200 rounded-full h-5">
                                     <div className="bg-green-500 h-5 rounded-full" style={{ width: `${Math.min(100, avgProgress * 100)}%` }} />
                                 </div>
-                                <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white drop-shadow-sm">
+                                <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white drop-shadow-sm">
                                     {(avgProgress * 100).toFixed(0)}%
                                 </span>
                             </div>
@@ -224,7 +224,7 @@ const MonthlyView: React.FC<{goals: Goal[], date: Date, onCheckInClick: (kpi: KP
 
     return (
         <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
-            <table className="w-full text-xs text-center border-collapse">
+            <table className="w-full text-sm text-center border-collapse">
                  <thead className="bg-slate-100">
                     <tr>
                         <th className="p-2 border-b text-left w-[25%] font-semibold">KPI</th>
@@ -281,7 +281,7 @@ const WeeklyView: React.FC<{goals: Goal[], date: Date, onCheckInClick: (kpi: KPI
 
     return (
         <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
-            <table className="w-full text-xs text-center border-collapse">
+            <table className="w-full text-sm text-center border-collapse">
                 <thead className="bg-slate-100">
                     <tr>
                         <th className="p-2 border-b text-left w-1/4 font-semibold">KPI</th>
@@ -322,13 +322,13 @@ const DailyView: React.FC<{goals: Goal[], date: Date, onCheckInClick: (kpi: KPI,
                     <div className="flex justify-between items-start">
                         <div>
                             <p className="font-semibold">{kpi.description}</p>
-                             <p className="text-xs text-slate-500">{kpi.goal.employeeName}</p>
+                             <p className="text-sm text-slate-500">{kpi.goal.employeeName}</p>
                         </div>
-                        <button onClick={() => onCheckInClick(kpi, date)} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200">Thêm Check-in</button>
+                        <button onClick={() => onCheckInClick(kpi, date)} className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200">Thêm Check-in</button>
                     </div>
                     <div className="mt-2 border-t pt-2">
                         {dailyEntries.length > 0 ? (
-                            <ul className="space-y-1 text-xs">
+                            <ul className="space-y-1 text-sm">
                             {dailyEntries.map(entry => (
                                 <li key={entry.id} className="flex justify-between p-1 rounded">
                                     <span className="text-slate-500">{new Date(entry.date).toLocaleTimeString('vi-VN')}</span>
@@ -338,7 +338,7 @@ const DailyView: React.FC<{goals: Goal[], date: Date, onCheckInClick: (kpi: KPI,
                             ))}
                             </ul>
                         ) : (
-                            <p className="text-xs text-slate-400 italic text-center p-2">Chưa có check-in nào trong ngày.</p>
+                            <p className="text-sm text-slate-400 italic text-center p-2">Chưa có check-in nào trong ngày.</p>
                         )}
                     </div>
                 </div>

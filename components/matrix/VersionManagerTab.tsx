@@ -76,7 +76,7 @@ const VersionManagerTab: React.FC<VersionManagerTabProps> = ({ versions, onLoadV
                                     className={`p-2 cursor-pointer ${selectedVersionId === version.id ? 'bg-blue-100' : 'hover:bg-slate-50'}`}
                                 >
                                     <p className="font-semibold text-sm">{version.name}</p>
-                                    <p className="text-xs text-slate-500">{new Date(version.timestamp).toLocaleString()}</p>
+                                    <p className="text-sm text-slate-500">{new Date(version.timestamp).toLocaleString()}</p>
                                 </li>
                             ))}
                         </ul>
@@ -89,7 +89,7 @@ const VersionManagerTab: React.FC<VersionManagerTabProps> = ({ versions, onLoadV
                 <h3 className="text-base font-bold mb-2">Nội dung Xem trước</h3>
                 <div className="flex-1 overflow-auto border-t">
                     {previewData ? (
-                        <table className="min-w-full text-xs border-collapse">
+                        <table className="min-w-full text-sm border-collapse">
                             <thead className="sticky top-0 bg-slate-100 z-10">
                                 <tr>
                                     <th className="p-1 border">MC1</th>

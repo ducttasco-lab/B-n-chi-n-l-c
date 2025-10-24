@@ -10,9 +10,11 @@ interface DepartmentAssignmentTabProps {
     allAssignments: Record<string, Record<string, string>>;
     setAllAssignments: React.Dispatch<React.SetStateAction<Record<string, Record<string, string>>>>;
     companyAssignments: Record<string, Record<string, string>>;
+    onSaveVersion: () => void;
+    onActivateMatrix: () => void;
 }
 
-const DepartmentAssignmentTab: React.FC<DepartmentAssignmentTabProps> = ({ tasks, roles, departments, allAssignments, setAllAssignments, companyAssignments }) => {
+const DepartmentAssignmentTab: React.FC<DepartmentAssignmentTabProps> = ({ tasks, roles, departments, allAssignments, setAllAssignments, companyAssignments, onSaveVersion, onActivateMatrix }) => {
     const [selectedDept, setSelectedDept] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -105,7 +107,8 @@ const DepartmentAssignmentTab: React.FC<DepartmentAssignmentTabProps> = ({ tasks
                     {isLoading ? 'AI Đang xử lý...' : 'AI Hỗ trợ Phân công'}
                 </button>
                  <div className="flex-grow"></div>
-                 <button className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold">Lưu & Đồng bộ</button>
+                 <button onClick={onSaveVersion} className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200">Lưu Phiên bản...</button>
+                 <button onClick={onActivateMatrix} className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 font-semibold">Kích hoạt Ma trận</button>
             </div>
             <div className="flex-1 overflow-auto">
                  <table className="min-w-full text-sm border-collapse">

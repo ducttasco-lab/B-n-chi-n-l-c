@@ -2,15 +2,15 @@
 import React, { useState, useMemo } from 'react';
 import { Goal, Department, Role, UserTask, KPI, PredefinedKPI } from '../../types.ts';
 import { suggestKPIs } from '../../services/geminiService.ts';
-import { MOCK_PREDEFINED_KPIS } from '../../constants.tsx';
 import { PlusIcon, TrashIcon, SparklesIcon } from '../icons.tsx';
 
 interface KpiLibraryModalProps {
+    availableKpis: PredefinedKPI[];
     onClose: () => void;
     onSelect: (kpis: PredefinedKPI[]) => void;
 }
 
-const KpiLibraryModal: React.FC<KpiLibraryModalProps> = ({ onClose, onSelect }) => {
+const KpiLibraryModal: React.FC<KpiLibraryModalProps> = ({ availableKpis, onClose, onSelect }) => {
     const [selectedKpis, setSelectedKpis] = useState<Set<string>>(new Set());
 
     const handleToggle = (code: string) => {
@@ -26,7 +26,7 @@ const KpiLibraryModal: React.FC<KpiLibraryModalProps> = ({ onClose, onSelect }) 
     };
 
     const handleConfirm = () => {
-        const selected = MOCK_PREDEFINED_KPIS.filter(kpi => selectedKpis.has(kpi.code));
+        const selected = availableKpis.filter(kpi => selectedKpis.has(kpi.code));
         onSelect(selected);
         onClose();
     };
@@ -36,7 +36,7 @@ const KpiLibraryModal: React.FC<KpiLibraryModalProps> = ({ onClose, onSelect }) 
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl flex flex-col h-[70vh]">
                 <h2 className="text-xl font-bold mb-4">Thư viện KPI</h2>
                 <div className="flex-1 overflow-y-auto border-t border-b mb-4">
-                    {MOCK_PREDEFINED_KPIS.map(kpi => (
+                    {availableKpis.map(kpi => (
                         <div key={kpi.code} className="flex items-center p-2 border-b hover:bg-slate-50">
                             <input
                                 type="checkbox"
@@ -67,9 +67,10 @@ interface GoalSetupTabProps {
     departments: Department[];
     roles: Role[];
     userTasks: UserTask[];
+    predefinedKpis: PredefinedKPI[];
 }
 
-const GoalSetupTab: React.FC<GoalSetupTabProps> = ({ goals, setGoals, departments, roles, userTasks }) => {
+const GoalSetupTab: React.FC<GoalSetupTabProps> = ({ goals, setGoals, departments, roles, userTasks, predefinedKpis }) => {
     const [selectedDept, setSelectedDept] = useState<string | null>(departments[0]?.code || null);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -166,7 +167,7 @@ const GoalSetupTab: React.FC<GoalSetupTabProps> = ({ goals, setGoals, department
 
     return (
         <div className="h-full flex p-4 space-x-4 bg-slate-50">
-            {isKpiLibraryOpen && <KpiLibraryModal onClose={() => setIsKpiLibraryOpen(false)} onSelect={handleSelectKpisFromLibrary} />}
+            {isKpiLibraryOpen && <KpiLibraryModal availableKpis={predefinedKpis} onClose={() => setIsKpiLibraryOpen(false)} onSelect={handleSelectKpisFromLibrary} />}
 
             {/* Left Panel */}
             <aside className="w-1/3 flex flex-col space-y-4">
@@ -193,7 +194,7 @@ const GoalSetupTab: React.FC<GoalSetupTabProps> = ({ goals, setGoals, department
                                 <ul className="divide-y">
                                     {employeeTasks.map(task => (
                                         <li key={task.id} onClick={() => setSelectedTaskId(task.id)} className={`p-2 cursor-pointer rounded ${selectedTaskId === task.id ? 'bg-blue-100' : 'hover:bg-slate-50'}`}>
-                                            <span className="font-mono text-xs bg-slate-200 px-1 rounded mr-2">{task.fullCode}</span>
+                                            <span className="font-mono text-sm bg-slate-200 px-1 rounded mr-2">{task.fullCode}</span>
                                             {task.taskName}
                                         </li>
                                     ))}
@@ -222,7 +223,7 @@ const GoalSetupTab: React.FC<GoalSetupTabProps> = ({ goals, setGoals, department
                                 />
                                 <button onClick={() => handleDeleteGoal(goal.goalId)} className="ml-4 p-1 text-slate-400 hover:text-red-600"><TrashIcon /></button>
                             </div>
-                            <p className="text-xs text-slate-500 mb-3">Liên kết với nhiệm vụ: {goal.linkedTaskName}</p>
+                            <p className="text-sm text-slate-500 mb-3">Liên kết với nhiệm vụ: {goal.linkedTaskName}</p>
 
                             {/* KPI Table */}
                             <table className="w-full text-sm">

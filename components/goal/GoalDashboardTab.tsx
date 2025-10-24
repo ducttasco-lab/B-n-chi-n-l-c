@@ -102,7 +102,7 @@ const GoalDashboardTab: React.FC<GoalDashboardTabProps> = ({ goals, departments,
                     <div className="w-full bg-slate-200 rounded-full h-2.5 mt-2">
                         <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${overallProgress * 100}%`}}></div>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">Hoàn thành: {completedKpis} / {allKpis.length} KPIs</p>
+                    <p className="text-sm text-slate-500 mt-1">Hoàn thành: {completedKpis} / {allKpis.length} KPIs</p>
                 </div>
                  {/* Revenue Card */}
                 <div className="bg-white p-4 rounded-lg shadow-sm border">
@@ -111,7 +111,7 @@ const GoalDashboardTab: React.FC<GoalDashboardTabProps> = ({ goals, departments,
                         {revenueSummary.actual.toLocaleString()}
                         <span className="text-lg text-slate-500 font-normal"> / {revenueSummary.target.toLocaleString()} {revenueSummary.unit}</span>
                     </p>
-                    <p className="text-xs text-slate-500 mt-1">Thực tế so với Kế hoạch</p>
+                    <p className="text-sm text-slate-500 mt-1">Thực tế so với Kế hoạch</p>
                 </div>
                  {/* Sales Card */}
                 <div className="bg-white p-4 rounded-lg shadow-sm border">
@@ -120,7 +120,7 @@ const GoalDashboardTab: React.FC<GoalDashboardTabProps> = ({ goals, departments,
                         {salesSummary.actual.toLocaleString()}
                          <span className="text-lg text-slate-500 font-normal"> / {salesSummary.target.toLocaleString()} {salesSummary.unit}</span>
                     </p>
-                    <p className="text-xs text-slate-500 mt-1">Thực tế so với Kế hoạch</p>
+                    <p className="text-sm text-slate-500 mt-1">Thực tế so với Kế hoạch</p>
                 </div>
                  {/* Cash Flow Card */}
                 <div className="bg-white p-4 rounded-lg shadow-sm border">
@@ -129,7 +129,7 @@ const GoalDashboardTab: React.FC<GoalDashboardTabProps> = ({ goals, departments,
                         {cashFlowSummary.actual.toLocaleString()}
                         <span className="text-lg text-slate-500 font-normal"> / {cashFlowSummary.target.toLocaleString()} {cashFlowSummary.unit}</span>
                     </p>
-                    <p className="text-xs text-slate-500 mt-1">Thực tế so với Kế hoạch</p>
+                    <p className="text-sm text-slate-500 mt-1">Thực tế so với Kế hoạch</p>
                 </div>
             </div>
 
@@ -144,7 +144,7 @@ const GoalDashboardTab: React.FC<GoalDashboardTabProps> = ({ goals, departments,
                                 <span className="w-6 font-bold text-slate-500">#{index + 1}</span>
                                 <span className="w-48 truncate">{item.name}</span>
                                 <div className="flex-1 bg-slate-200 rounded-full h-5">
-                                    <div className="bg-blue-500 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ width: `${Math.min(100, item.progress * 100)}%`}}>
+                                    <div className="bg-blue-500 h-5 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ width: `${Math.min(100, item.progress * 100)}%`}}>
                                         {(item.progress * 100).toFixed(0)}%
                                     </div>
                                 </div>

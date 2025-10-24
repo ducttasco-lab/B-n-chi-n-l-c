@@ -141,7 +141,7 @@ const TaskListTab: React.FC<TaskListTabProps> = ({ tasks, setTasks, isLoading })
              <div className="p-2 border-t border-slate-200 flex space-x-2 flex-shrink-0">
                 <button onClick={handleAddTask} className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1"><PlusIcon/> Thêm mới</button>
                 <button onClick={handleDeleteTask} disabled={!selectedTaskId} className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"><TrashIcon/> Xóa</button>
-                <button className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1"><FileImportIcon/> Import từ File...</button>
+                <button onClick={() => alert('Chức năng Import từ File đang được phát triển.')} className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1"><FileImportIcon/> Import từ File...</button>
             </div>
         </div>
     );

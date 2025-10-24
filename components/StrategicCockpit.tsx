@@ -7,7 +7,7 @@ import AnalysisReportTab from './cockpit/AnalysisReportTab.tsx';
 import StrategyBoardTab from './cockpit/StrategyBoardTab.tsx';
 import AiAdvisor from './AiAdvisor.tsx';
 import TemplateFillerDialog from './TemplateFillerDialog.tsx';
-import { PaperClipIcon, SparklesIcon } from './icons.tsx';
+import { PaperClipIcon, SparklesIcon, PlusIcon } from './icons.tsx';
 import InitiativeEditor from './cockpit/InitiativeEditor.tsx';
 import ProgressLogger from './cockpit/ProgressLogger.tsx';
 
@@ -256,7 +256,7 @@ const StrategicCockpit: React.FC = () => {
                             'analysis-6': 'Báo cáo 6 Biến số',
                         };
                         return (
-                            <button key={tabId} onClick={() => setActiveTab(tabId)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === tabId ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>
+                            <button key={tabId} onClick={() => setActiveTab(tabId)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === tabId ? 'bg-blue-800 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>
                                 {labels[tabId]}
                             </button>
                         );
@@ -271,16 +271,16 @@ const StrategicCockpit: React.FC = () => {
                      <div className={`collapsible-panel flex-1 flex-col min-h-0 ${isNotesPanelCollapsed ? 'collapsed' : 'flex'}`}>
                         {/* Notes Panel (Scrollable) */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                            <h2 className="text-lg font-bold">{selectedItem?.name || "Chọn một Yếu tố hoặc Biến số để xem chi tiết"}</h2>
+                            <h2 className="text-lg font-bold text-slate-800">{selectedItem?.name || "Chọn một Yếu tố hoặc Biến số"}</h2>
                             {selectedItem ? (
                                 selectedItem.questionAnswers.map((qa, index) => (
-                                    <div key={index} className="grid grid-cols-2 gap-1">
-                                        <div className="bg-slate-200 p-2 rounded-l-md text-slate-700">{qa.question}</div>
+                                    <div key={index}>
+                                        <label className="text-xs font-semibold text-slate-600">{qa.question}</label>
                                         <textarea 
                                             value={qa.answer}
                                             onChange={(e) => handleAnswerChange(index, e.target.value)}
                                             rows={3}
-                                            className="w-full p-2 border border-slate-300 rounded-r-md text-sm focus:ring-2 focus:ring-blue-500"
+                                            className="w-full p-2 mt-1 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500"
                                         />
                                     </div>
                                 ))
@@ -290,13 +290,13 @@ const StrategicCockpit: React.FC = () => {
                         </div>
                         
                         {/* Action Buttons Panel (Fixed) */}
-                        <div className="flex-shrink-0 p-4 border-t border-b border-slate-200">
+                        <div className="flex-shrink-0 p-4 border-t border-b border-slate-200 bg-white">
                             <div className="grid grid-cols-3 gap-2 text-sm">
-                                <button onClick={handleSaveNotes} className="p-2 bg-slate-200 rounded hover:bg-slate-300">Lưu Ghi chú</button>
-                                <button onClick={() => setIsFillerOpen(true)} className="p-2 bg-slate-200 rounded hover:bg-slate-300">AI Điền Dữ liệu...</button>
-                                <button onClick={handleAnalyze18Factors} className="p-2 bg-slate-200 rounded hover:bg-slate-300">AI Phân tích 18 Yếu tố</button>
-                                <button onClick={handleDiagnoseVariables} className="p-2 bg-slate-200 rounded hover:bg-slate-300">AI Chẩn đoán 6 Biến số</button>
-                                <button onClick={handleGenerateStrategyBoard} className="p-2 bg-slate-200 rounded hover:bg-slate-300 col-span-2">AI Tổng hợp Bảng Chiến lược</button>
+                                <button onClick={handleSaveNotes} className="px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 font-medium transition-colors">Lưu Ghi chú</button>
+                                <button onClick={() => setIsFillerOpen(true)} className="px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 font-medium transition-colors">AI Điền Dữ liệu...</button>
+                                <button onClick={handleAnalyze18Factors} className="px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 font-medium transition-colors">AI Phân tích 18 Yếu tố</button>
+                                <button onClick={handleDiagnoseVariables} className="px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 font-medium transition-colors">AI Chẩn đoán 6 Biến số</button>
+                                <button onClick={handleGenerateStrategyBoard} className="px-3 py-2 bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 col-span-2 font-semibold transition-colors">AI Tổng hợp Bảng Chiến lược</button>
                             </div>
                         </div>
                     </div>
@@ -314,14 +314,14 @@ const StrategicCockpit: React.FC = () => {
                     </div>
                     
                     {/* AI Advisor Toolbar (Fixed) */}
-                     <div className="flex-shrink-0 p-2 bg-slate-100 flex items-center justify-start space-x-2 text-xs border-t">
+                     <div className="flex-shrink-0 p-2 bg-white flex items-center justify-start space-x-2 text-xs border-t">
                         <input type="file" ref={fileInputRef} className="hidden" onChange={() => { alert('Chức năng đính kèm file đang được phát triển.')}} />
-                        <button onClick={handleFileAttach} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-200"><PaperClipIcon /> <span>Đính kèm File</span></button>
-                        <button onClick={() => setIsNotesPanelCollapsed(p => !p)} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-200"><span>{isNotesPanelCollapsed ? 'Thu gọn Chat' : 'Mở rộng Chat'}</span></button>
-                        <button onClick={handleApplyNote} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-200 disabled:opacity-50" disabled={!lastAiResponse}><span>✔ Áp dụng Ghi chú</span></button>
-                        <button onClick={handleCreateInitiative} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-200 disabled:opacity-50" disabled={!selectedNodeId}><span>+ Tạo Sáng kiến</span></button>
+                        <button onClick={handleFileAttach} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-100 text-slate-600"><PaperClipIcon className="w-4 h-4"/> <span>Đính kèm File</span></button>
+                        <button onClick={() => setIsNotesPanelCollapsed(p => !p)} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-100 text-slate-600"><span>{isNotesPanelCollapsed ? 'Thu gọn Chat' : 'Mở rộng Chat'}</span></button>
+                        <button onClick={handleApplyNote} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-100 text-slate-600 disabled:opacity-50" disabled={!lastAiResponse}><span>✔ Áp dụng Ghi chú</span></button>
+                        <button onClick={handleCreateInitiative} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-100 text-slate-600 disabled:opacity-50" disabled={!selectedNodeId}><PlusIcon className="w-4 h-4" /> <span>Tạo Sáng kiến</span></button>
                         <div className="relative">
-                             <button ref={optionsButtonRef} onClick={() => setIsOptionsOpen(p => !p)} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-200"><span>Tùy chọn...</span></button>
+                             <button ref={optionsButtonRef} onClick={() => setIsOptionsOpen(p => !p)} className="flex items-center space-x-1 px-2 py-1 rounded hover:bg-slate-100 text-slate-600"><span>Tùy chọn...</span></button>
                              {isOptionsOpen && (
                                 <div className="absolute bottom-full right-0 mb-2 w-48 bg-white border border-slate-200 rounded-md shadow-lg z-10">
                                     <button onClick={handleClearChat} className="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">

@@ -169,12 +169,12 @@ ${attachedFile ? `[TÀI LIỆU THAM KHẢO]: Người dùng đã đính kèm fil
                      <div className="bg-white rounded-lg border border-slate-200 p-2 space-y-1">
                         {contextInputs.map((input) => (
                             <div key={input.id} className="grid grid-cols-3 gap-px">
-                                <div className="col-span-1 bg-slate-100 p-2 rounded-l-md text-slate-700 text-xs font-semibold flex items-center">{input.question}</div>
+                                <div className="col-span-1 bg-slate-100 p-2 rounded-l-md text-slate-700 text-sm font-semibold flex items-center">{input.question}</div>
                                 <div className="col-span-2">
                                     <textarea 
                                         value={input.answer}
                                         onChange={(e) => onContextChange(input.id, e.target.value)}
-                                        className="w-full h-full border border-slate-200 rounded-r-md text-xs p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                        className="w-full h-full border border-slate-200 rounded-r-md text-sm p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-none"
                                         rows={4}
                                         disabled={isLoading}
                                     />
@@ -195,7 +195,7 @@ ${attachedFile ? `[TÀI LIỆU THAM KHẢO]: Người dùng đã đính kèm fil
             </div>
 
             <div className={`collapsible-panel ${isAiCockpitCollapsed ? 'collapsed' : ''}`}>
-                <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-4 text-sm">
                     <div>
                          <label className="font-semibold">Mức độ chi tiết:</label>
                          <select value={detailLevel} onChange={e => setDetailLevel(e.target.value)} className="ml-2 p-1 border border-slate-300 rounded-md" disabled={isLoading}>
@@ -241,7 +241,7 @@ ${attachedFile ? `[TÀI LIỆU THAM KHẢO]: Người dùng đã đính kèm fil
                         <SendIcon />
                      </button>
                  </div>
-                 <div className="mt-2 flex space-x-3 text-xs text-slate-600 items-center">
+                 <div className="mt-2 flex space-x-3 text-sm text-slate-600 items-center">
                     <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => setAttachedFile(e.target.files ? e.target.files[0] : null)} />
                     <button onClick={handleFileAttach} className="flex items-center gap-1 hover:text-blue-600 disabled:text-slate-400" disabled={isLoading}>
                         <PaperClipIcon/> {attachedFile ? `${attachedFile.name} (x)` : 'Đính kèm File'}

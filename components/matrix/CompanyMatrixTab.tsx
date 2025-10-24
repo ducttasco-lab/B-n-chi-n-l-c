@@ -110,7 +110,7 @@ const CompanyMatrixTab: React.FC<CompanyMatrixTabProps> = ({ tasks, setTasks, de
             <div className="p-2 border-t border-slate-200 flex space-x-2 flex-shrink-0">
                  <button className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1"><PlusIcon/> Thêm mới</button>
                 <button onClick={handleDeleteTask} disabled={!selectedTaskId} className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"><TrashIcon/> Xóa</button>
-                <button className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1"><FileImportIcon/> Import từ File...</button>
+                <button onClick={() => alert('Chức năng Import từ File đang được phát triển.')} className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1"><FileImportIcon/> Import từ File...</button>
                  <div className="flex-grow"></div>
                  <button onClick={onSaveVersion} className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200">Lưu Phiên bản...</button>
                  <button onClick={onActivateMatrix} className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 font-semibold">Kích hoạt Ma trận</button>
