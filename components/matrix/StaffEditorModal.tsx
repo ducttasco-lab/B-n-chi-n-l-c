@@ -1,17 +1,18 @@
 // components/matrix/StaffEditorModal.tsx
 import React, { useState, useEffect } from 'react';
-import { Role } from '../../types.ts';
+import { Role, Department } from '../../types.ts';
 
 interface StaffEditorModalProps {
     role: Role | null;
-    departmentCode: string | null;
+    departments: Department[];
     onClose: () => void;
     onSave: (role: Role) => void;
 }
 
-const StaffEditorModal: React.FC<StaffEditorModalProps> = ({ role, departmentCode, onClose, onSave }) => {
+const StaffEditorModal: React.FC<StaffEditorModalProps> = ({ role, departments, onClose, onSave }) => {
     const [name, setName] = useState('');
     const [title, setTitle] = useState('');
+    const [departmentCode, setDepartmentCode] = useState(departments[0]?.code || '');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const isEditing = !!role;
@@ -20,6 +21,7 @@ const StaffEditorModal: React.FC<StaffEditorModalProps> = ({ role, departmentCod
         if (role) {
             setName(role.name);
             setTitle(role.title);
+            setDepartmentCode(role.departmentCode);
             setEmail(role.email);
             setPhone(role.phone);
         }
@@ -27,17 +29,17 @@ const StaffEditorModal: React.FC<StaffEditorModalProps> = ({ role, departmentCod
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name.trim()) {
-            alert('Tên nhân viên không được để trống.');
+        if (!name.trim() || !title.trim() || !departmentCode) {
+            alert('Vui lòng điền Tên, Chức danh và chọn Phòng ban.');
             return;
         }
-        onSave({ 
+        onSave({
             id: role?.id || `role-${Date.now()}`,
-            name, 
-            title, 
-            email, 
-            phone,
-            departmentCode: role?.departmentCode || departmentCode!
+            name,
+            title,
+            departmentCode,
+            email,
+            phone
         });
         onClose();
     };
@@ -45,23 +47,29 @@ const StaffEditorModal: React.FC<StaffEditorModalProps> = ({ role, departmentCod
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
-                <h2 className="text-xl font-bold mb-4">{isEditing ? 'Sửa thông tin Nhân sự' : 'Thêm Nhân sự mới'}</h2>
+                <h2 className="text-xl font-bold mb-4">{isEditing ? 'Sửa Nhân viên' : 'Thêm Nhân viên mới'}</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700">Tên Nhân viên / Vị trí:</label>
-                        <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full mt-1 p-2 border border-slate-300 rounded-md" required />
+                        <label className="block text-sm font-medium">Họ và Tên</label>
+                        <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full mt-1 p-2 border rounded" required />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium">Chức danh</label>
+                        <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full mt-1 p-2 border rounded" required />
                     </div>
                      <div>
-                        <label className="block text-sm font-medium text-slate-700">Chức danh:</label>
-                        <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full mt-1 p-2 border border-slate-300 rounded-md" />
+                        <label className="block text-sm font-medium">Phòng ban</label>
+                        <select value={departmentCode} onChange={e => setDepartmentCode(e.target.value)} className="w-full mt-1 p-2 border rounded" required>
+                            {departments.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
+                        </select>
                     </div>
                      <div>
-                        <label className="block text-sm font-medium text-slate-700">Email:</label>
-                        <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full mt-1 p-2 border border-slate-300 rounded-md" />
+                        <label className="block text-sm font-medium">Email</label>
+                        <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full mt-1 p-2 border rounded" />
                     </div>
                      <div>
-                        <label className="block text-sm font-medium text-slate-700">Số điện thoại:</label>
-                        <input type="text" value={phone} onChange={e => setPhone(e.target.value)} className="w-full mt-1 p-2 border border-slate-300 rounded-md" />
+                        <label className="block text-sm font-medium">Số điện thoại</label>
+                        <input type="text" value={phone} onChange={e => setPhone(e.target.value)} className="w-full mt-1 p-2 border rounded" />
                     </div>
                     <div className="flex justify-end space-x-2 pt-4">
                         <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 rounded-md hover:bg-slate-300">Hủy</button>

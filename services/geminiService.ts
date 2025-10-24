@@ -64,6 +64,34 @@ export const generateText = async (prompt: string): Promise<string> => {
   }
 };
 
+export const generateTextWithFiles = async (prompt: string, files?: { mimeType: string; data: string }[]): Promise<string> => {
+    if (!API_KEY) return "AI features are disabled because the API key is not configured.";
+    try {
+        const parts: any[] = [{ text: prompt }];
+        if (files && files.length > 0) {
+            files.forEach(file => {
+                parts.push({
+                    inlineData: {
+                        mimeType: file.mimeType,
+                        data: file.data,
+                    },
+                });
+            });
+        }
+
+        const contents: Content = { parts: parts };
+
+        const response: GenerateContentResponse = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: contents,
+        });
+        return response.text;
+    } catch (error) {
+        console.error("Error generating text with files:", error);
+        return `Sorry, I encountered an error: ${error instanceof Error ? error.message : String(error)}`;
+    }
+};
+
 export const generateJsonResponse = async <T>(
   prompt: string,
   files?: { mimeType: string; data: string }[]
@@ -137,7 +165,7 @@ export const getFullContextFromModel = (strategicModel: StrategicModel, sixVaria
 
 export const analyzeSingleFactor = async (context: string, factorName: string): Promise<string> => {
     const prompt = `[ĐÓNG VAI]: Bạn là một nhà tư vấn chiến lược cấp cao.
-[BỐI CẢNH]: Bạn đã được cung cấp TOÀN BỘ BỐI CẢNH CHIẾN LƯỢC của một doanh nghiệp.
+[BỐI CẢNH]: Bạn đã được cung cấp TOÀN BỘ BỐI CẢNH CHIẾN LƯỢỢC của một doanh nghiệp.
 --- BỐI CẢNH CHUNG ---
 ${context}
 --- HẾT BỐI CẢNH CHUNG ---

@@ -1,120 +1,93 @@
 // components/matrix/CompanyMatrixTab.tsx
-import React, { useState } from 'react';
+import React from 'react';
 import { Task, Department } from '../../types.ts';
-import { PlusIcon, TrashIcon, FileImportIcon } from '../icons.tsx';
 
 interface CompanyMatrixTabProps {
     tasks: Task[];
-    setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
     departments: Department[];
     assignments: Record<string, Record<string, string>>;
-    onSaveVersion: () => void;
-    onActivateMatrix: () => void;
+    setAssignments: React.Dispatch<React.SetStateAction<Record<string, Record<string, string>>>>;
+    isLoading: boolean;
 }
 
-const getRowStyle = (task: Task): string => {
-    if (task.isGroupHeader) {
-        return 'bg-slate-200 font-bold';
-    }
-    if (task.mc4) {
-        return 'bg-white hover:bg-slate-50'; // MC4 level
-    }
-    if (task.mc3) {
-        return 'bg-white hover:bg-slate-50';
-    }
-    if (task.mc2) {
-        return 'bg-green-50 hover:bg-green-100'; // MC2 level
-    }
-    if (task.mc1) {
-        return 'bg-blue-50 hover:bg-blue-100 font-bold'; // MC1 level
-    }
-    return 'bg-white hover:bg-slate-50';
-};
-
-
-const CompanyMatrixTab: React.FC<CompanyMatrixTabProps> = ({ tasks, setTasks, departments, assignments, onSaveVersion, onActivateMatrix }) => {
-    const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-
-    const handleDeleteTask = () => {
-        if (!selectedTaskId) {
-            alert('Vui lòng chọn một dòng để xóa.');
-            return;
-        }
-        if (window.confirm('Bạn có chắc chắn muốn xóa nhiệm vụ đã chọn không?')) {
-            setTasks(prevTasks => {
-                const newTasks = prevTasks.filter(task => task.id !== selectedTaskId);
-                 // Re-index row numbers for data integrity
-                return newTasks.map((task, index) => ({ ...task, rowNumber: index + 1 }));
-            });
-            setSelectedTaskId(null); // Clear selection after deletion
-        }
-    };
+const CompanyMatrixTab: React.FC<CompanyMatrixTabProps> = ({ tasks, departments, assignments, setAssignments, isLoading }) => {
     
-    if (tasks.length === 0) {
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-full">
+                <div className="text-center text-slate-500 animate-pulse">AI đang tạo ma trận...</div>
+            </div>
+        );
+    }
+    
+    if (tasks.length === 0 || departments.length === 0) {
         return (
             <div className="flex justify-center items-center h-full">
                 <div className="text-center text-slate-500 max-w-md">
-                    <h3 className="text-lg font-semibold">Chưa có Ma trận</h3>
-                    <p className="mt-2">Khu vực này sẽ hiển thị ma trận cấp công ty sau khi bạn hoàn thành Bước 1 và chạy "Bước 2: Tạo Ma trận Cấp Công ty".</p>
+                    <p>Vui lòng tạo danh sách nhiệm vụ và phòng ban trước khi xem ma trận này.</p>
                 </div>
             </div>
         );
     }
+    
+    const handleAssignmentChange = (taskId: string, deptCode: string, value: string) => {
+        setAssignments(prev => {
+            const newAssignments = { ...prev };
+            if (!newAssignments[taskId]) {
+                newAssignments[taskId] = {};
+            }
+            newAssignments[taskId][deptCode] = value.toUpperCase();
+            return newAssignments;
+        });
+    };
 
-    const sortedDepartments = [...departments].sort((a,b) => a.priority - b.priority);
+    const sortedDepartments = [...departments].sort((a, b) => a.priority - b.priority);
 
     return (
-        <div className="h-full flex flex-col">
-            <div className="flex-1 overflow-auto">
-                <table className="min-w-full text-sm border-collapse">
-                    <thead className="sticky top-0 bg-slate-100 z-10">
-                        <tr>
-                            <th className="p-2 border font-semibold w-12">MC1</th>
-                            <th className="p-2 border font-semibold w-12">MC2</th>
-                            <th className="p-2 border font-semibold w-12">MC3</th>
-                            <th className="p-2 border font-semibold w-12">MC4</th>
-                            <th className="p-2 border text-left font-semibold min-w-[250px]">Tên Nhiệm vụ</th>
-                            {sortedDepartments.map(dept => (
-                                <th key={dept.code} className="p-2 border font-semibold w-24 whitespace-nowrap">{dept.name}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {tasks.map(task => (
-                            <tr 
-                                key={task.id} 
-                                onClick={() => setSelectedTaskId(task.id)}
-                                className={`${getRowStyle(task)} ${selectedTaskId === task.id ? 'ring-2 ring-blue-500 ring-inset' : ''}`}
-                            >
-                               {task.isGroupHeader ? (
-                                   <td colSpan={5 + departments.length} className="p-2 border">{task.name}</td>
-                               ) : (
-                                   <>
-                                    <td className="p-2 border text-center">{task.mc1}</td>
-                                    <td className="p-2 border text-center">{task.mc2}</td>
-                                    <td className="p-2 border text-center">{task.mc3}</td>
-                                    <td className="p-2 border text-center">{task.mc4}</td>
-                                    <td className="p-2 border">{task.name}</td>
-                                    {sortedDepartments.map(dept => (
-                                        <td key={`${task.id}-${dept.code}`} className="p-2 border text-center">
-                                            {assignments[task.id]?.[dept.code] || ''}
-                                        </td>
-                                    ))}
-                                   </>
-                               )}
-                            </tr>
+        <div className="h-full overflow-auto">
+            <table className="min-w-full text-xs border-collapse">
+                <thead className="sticky top-0 bg-slate-100 z-10">
+                    <tr>
+                        <th className="p-1 border font-semibold w-12">MC1</th>
+                        <th className="p-1 border font-semibold w-12">MC2</th>
+                        <th className="p-1 border font-semibold w-12">MC3</th>
+                        <th className="p-1 border font-semibold w-12">MC4</th>
+                        <th className="p-1 border text-left font-semibold min-w-[250px]">Tên Nhiệm vụ</th>
+                        {sortedDepartments.map(dept => (
+                            <th key={dept.code} className="p-1 border font-semibold w-16" title={dept.name}>{dept.code}</th>
                         ))}
-                    </tbody>
-                </table>
-            </div>
-            <div className="p-2 border-t border-slate-200 flex space-x-2 flex-shrink-0">
-                 <button className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1"><PlusIcon/> Thêm mới</button>
-                <button onClick={handleDeleteTask} disabled={!selectedTaskId} className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"><TrashIcon/> Xóa</button>
-                <button onClick={() => alert('Chức năng Import từ File đang được phát triển.')} className="px-3 py-1 text-sm bg-slate-200 rounded hover:bg-slate-300 flex items-center gap-1"><FileImportIcon/> Import từ File...</button>
-                 <div className="flex-grow"></div>
-                 <button onClick={onSaveVersion} className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200">Lưu Phiên bản...</button>
-                 <button onClick={onActivateMatrix} className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 font-semibold">Kích hoạt Ma trận</button>
-            </div>
+                    </tr>
+                </thead>
+                <tbody>
+                    {tasks.map(task => (
+                        <tr key={task.id} className={task.isGroupHeader ? 'bg-slate-200 font-bold' : 'hover:bg-slate-50'}>
+                           <td className="p-1 border text-center">{task.mc1}</td>
+                           <td className="p-1 border text-center">{task.mc2}</td>
+                           <td className="p-1 border text-center">{task.mc3}</td>
+                           <td className="p-1 border text-center">{task.mc4}</td>
+                           <td className="p-1 border">{task.name}</td>
+                           {sortedDepartments.map(dept => (
+                               <td key={dept.code} className="p-0 border">
+                                   {!task.isGroupHeader && (
+                                       <select 
+                                            value={assignments[task.id]?.[dept.code] || ''}
+                                            onChange={e => handleAssignmentChange(task.id, dept.code, e.target.value)}
+                                            className="w-full h-full p-1 bg-transparent focus:bg-white outline-none"
+                                        >
+                                            <option value=""></option>
+                                            <option value="Q">Q</option>
+                                            <option value="T">T</option>
+                                            <option value="K">K</option>
+                                            <option value="B">B</option>
+                                            <option value="P">P</option>
+                                       </select>
+                                   )}
+                               </td>
+                           ))}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 };

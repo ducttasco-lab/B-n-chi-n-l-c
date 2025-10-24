@@ -7,155 +7,46 @@ import AiSettings from './components/AiSettings.tsx';
 import UserGuide from './components/UserGuide.tsx';
 import LoginScreen from './components/LoginScreen.tsx';
 import AiAdvisorPage from './components/AiAdvisorPage.tsx'; // Import the new page
+import UserProfilePage from './components/UserProfilePage.tsx'; // Import the extracted component
 import { checkAuth, logout } from './services/authService.ts';
-import { MapIcon, TableCellsIcon, CheckCircleIcon, CogIcon, BookOpenIcon, SparklesIcon, UserCircleIcon, LogoutIcon, BuildingOfficeIcon, PencilIcon } from './components/icons.tsx';
-import { Department, Role } from './types.ts';
+import { MapIcon, TableCellsIcon, CheckCircleIcon, CogIcon, BookOpenIcon, SparklesIcon, UserCircleIcon, LogoutIcon } from './components/icons.tsx';
+import { Department, Role, Task, VersionData, VersionInfo } from './types.ts';
 import { MOCK_DEPARTMENTS, MOCK_ROLES } from './constants.tsx';
-import PersonnelManagerTab from './components/matrix/PersonnelManagerTab.tsx';
+import * as versionManager from './services/versionManager.ts';
 
 
-type AppView = 'cockpit' | 'matrix' | 'goals' | 'advisor' | 'guide' | 'settings' | 'user-profile' | 'company-settings';
-
-// --- User Profile Page Component ---
-const UserProfilePage: React.FC = () => {
-    const [name, setName] = useState('Admin');
-    const [title, setTitle] = useState('Quản trị viên');
-    const [email, setEmail] = useState('admin@asco.com.vn');
-    const [phone, setPhone] = useState('0123456789');
-    const [profileImage, setProfileImage] = useState<string | null>(null);
-    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleSave = () => {
-        setSaveStatus('saving');
-        // In a real app, this would call an API
-        setTimeout(() => {
-            setSaveStatus('success');
-            setTimeout(() => {
-                setSaveStatus('idle');
-            }, 3000); // Hide message after 3 seconds
-        }, 1000); // Simulate network delay
-    };
-    
-    const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setProfileImage(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const triggerFileSelect = () => {
-        fileInputRef.current?.click();
-    };
-
-    return (
-        <div className="h-full flex flex-col bg-slate-200 p-6">
-            <header className="flex-shrink-0 bg-white p-4 border-b border-slate-200 rounded-t-lg">
-                <h2 className="text-xl font-bold text-slate-800">Hồ sơ của bạn</h2>
-            </header>
-            <main className="flex-1 bg-white p-6 rounded-b-lg shadow-sm">
-                <div className="max-w-2xl mx-auto space-y-6">
-                    <div className="flex items-center space-x-6">
-                        <div className="relative">
-                            <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
-                            {profileImage ? (
-                                <img src={profileImage} alt="Profile" className="w-24 h-24 rounded-full object-cover" />
-                            ) : (
-                                <UserCircleIcon className="w-24 h-24 text-slate-400" />
-                            )}
-                            <button 
-                                onClick={triggerFileSelect} 
-                                className="absolute bottom-0 right-0 bg-white p-1.5 rounded-full shadow border hover:bg-slate-100"
-                                aria-label="Sửa ảnh đại diện"
-                            >
-                                <PencilIcon className="w-4 h-4 text-slate-600" />
-                            </button>
-                        </div>
-                        <div>
-                            <h3 className="text-2xl font-bold">{name}</h3>
-                            <p className="text-slate-500">{title}</p>
-                        </div>
-                    </div>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700">Họ và Tên</label>
-                            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full mt-1 p-2 border rounded-md"/>
-                        </div>
-                         <div>
-                            <label className="block text-sm font-medium text-slate-700">Chức danh</label>
-                            <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full mt-1 p-2 border rounded-md"/>
-                        </div>
-                         <div>
-                            <label className="block text-sm font-medium text-slate-700">Email</label>
-                            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full mt-1 p-2 border rounded-md"/>
-                        </div>
-                         <div>
-                            <label className="block text-sm font-medium text-slate-700">Số điện thoại</label>
-                            <input type="text" value={phone} onChange={e => setPhone(e.target.value)} className="w-full mt-1 p-2 border rounded-md"/>
-                        </div>
-                    </div>
-                     <div className="flex justify-end items-center pt-4 gap-4">
-                        {saveStatus === 'success' && (
-                            <div className="text-green-600 flex items-center gap-2 transition-opacity duration-300" role="status">
-                                <CheckCircleIcon className="w-5 h-5" />
-                                <span className="font-semibold">Đã lưu thành công!</span>
-                            </div>
-                        )}
-                        <button 
-                            onClick={handleSave} 
-                            disabled={saveStatus === 'saving'}
-                            className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-wait"
-                        >
-                            {saveStatus === 'saving' ? 'Đang lưu...' : 'Lưu thay đổi'}
-                        </button>
-                    </div>
-                </div>
-            </main>
-        </div>
-    );
-};
-
-// --- Company Settings Page Component ---
-interface CompanySettingsPageProps {
-    departments: Department[];
-    setDepartments: React.Dispatch<React.SetStateAction<Department[]>>;
-    roles: Role[];
-    setRoles: React.Dispatch<React.SetStateAction<Role[]>>;
-}
-
-const CompanySettingsPage: React.FC<CompanySettingsPageProps> = ({ departments, setDepartments, roles, setRoles }) => {
-    return (
-        <div className="h-full flex flex-col bg-slate-200">
-            <header className="flex-shrink-0 bg-white p-4 border-b border-slate-200">
-                <h2 className="text-xl font-bold text-slate-800">Cài đặt Công ty</h2>
-                <p className="text-sm text-slate-500">Quản lý các phòng ban và nhân sự trong toàn bộ công ty.</p>
-            </header>
-            <main className="flex-1 overflow-y-auto">
-                 <PersonnelManagerTab 
-                    departments={departments} 
-                    setDepartments={setDepartments}
-                    roles={roles}
-                    setRoles={setRoles}
-                 />
-            </main>
-        </div>
-    );
-};
-
+type AppView = 'cockpit' | 'matrix' | 'goals' | 'advisor' | 'guide' | 'settings' | 'user-profile';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(checkAuth());
-    const [activeView, setActiveView] = useState<AppView>('advisor');
+    const [activeView, setActiveView] = useState<AppView>('matrix');
     const [isProfileMenuOpen, setProfileMenuOpen] = useState(false);
     const profileMenuRef = useRef<HTMLDivElement>(null);
     
-    // Lifted state for shared data
+    // --- STATE LIFTED FROM TaskMatrixBuilder ---
     const [departments, setDepartments] = useState<Department[]>(MOCK_DEPARTMENTS);
     const [roles, setRoles] = useState<Role[]>(MOCK_ROLES);
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [generatedTaskMarkdown, setGeneratedTaskMarkdown] = useState('');
+    const [companyMatrixAssignments, setCompanyMatrixAssignments] = useState<Record<string, Record<string, string>>>({});
+    const [departmentalAssignments, setDepartmentalAssignments] = useState<Record<string, Record<string, string>>>({});
+    const [versions, setVersions] = useState<VersionInfo[]>([]);
+
+    // Load active matrix and versions from local storage on initial render
+    useEffect(() => {
+        const activeData = versionManager.loadActiveMatrix();
+        if (activeData) {
+            setTasks(activeData.tasks || []);
+            setCompanyMatrixAssignments(activeData.companyAssignments || {});
+            setDepartmentalAssignments(activeData.departmentalAssignments || {});
+            setGeneratedTaskMarkdown(activeData.generatedTaskMarkdown || '');
+            setDepartments(activeData.departments || MOCK_DEPARTMENTS);
+            setRoles(activeData.roles || MOCK_ROLES);
+            console.log("Loaded active matrix from storage.");
+        }
+        setVersions(versionManager.getVersions());
+    }, []);
+    // --- END OF LIFTED STATE ---
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -181,22 +72,29 @@ const App: React.FC = () => {
     const renderView = () => {
         switch (activeView) {
             case 'cockpit': return <StrategicCockpit />;
-            case 'matrix': return <TaskMatrixBuilder departments={departments} roles={roles} />;
+            case 'matrix': return <TaskMatrixBuilder 
+                                    tasks={tasks} setTasks={setTasks}
+                                    departments={departments} setDepartments={setDepartments}
+                                    roles={roles} setRoles={setRoles}
+                                    generatedTaskMarkdown={generatedTaskMarkdown} setGeneratedTaskMarkdown={setGeneratedTaskMarkdown}
+                                    companyMatrixAssignments={companyMatrixAssignments} setCompanyMatrixAssignments={setCompanyMatrixAssignments}
+                                    departmentalAssignments={departmentalAssignments} setDepartmentalAssignments={setDepartmentalAssignments}
+                                    versions={versions} setVersions={setVersions}
+                                 />;
             case 'goals': return <GoalManager />;
             case 'advisor': return <AiAdvisorPage />;
             case 'guide': return <UserGuide />;
             case 'settings': return <AiSettings />;
             case 'user-profile': return <UserProfilePage />;
-            case 'company-settings': return <CompanySettingsPage departments={departments} setDepartments={setDepartments} roles={roles} setRoles={setRoles} />;
             default: return <StrategicCockpit />;
         }
     };
     
     const navItems = [
         { id: 'cockpit', label: 'Bản đồ Chiến lược', icon: <MapIcon /> },
-        { id: 'matrix', label: 'Ma trận Phân nhiệm', icon: <TableCellsIcon /> },
+        { id: 'matrix', label: 'Ma trận Phân nhiệm', icon: <TableCellsIcon />, isHighlighted: true },
         { id: 'goals', label: 'Quản lý Mục tiêu', icon: <CheckCircleIcon /> },
-        { id: 'advisor', label: 'Cố vấn AI', icon: <SparklesIcon />, isHighlighted: true },
+        { id: 'advisor', label: 'Cố vấn AI', icon: <SparklesIcon /> },
         { id: 'guide', label: 'Hướng dẫn', icon: <BookOpenIcon /> },
         { id: 'settings', label: 'Cài đặt AI', icon: <CogIcon /> },
     ];

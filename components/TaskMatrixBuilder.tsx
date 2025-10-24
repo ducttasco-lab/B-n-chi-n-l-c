@@ -1,298 +1,213 @@
 // components/TaskMatrixBuilder.tsx
-import React, { useState, useMemo, useEffect } from 'react';
-import { Task, Role, Department, MatrixContextInput, ChatMessage, VersionData, VersionInfo } from '../types.ts';
-import { MATRIX_BUILDER_INITIAL_INPUTS } from '../constants.tsx';
+import React, { useState, useEffect } from 'react';
+import { Department, Role, Task, ChatMessage, VersionInfo, VersionData } from '../types.ts';
+// FIX: Corrected icon imports to match available exports.
+import { TableCellsIcon, ListBulletIcon, BuildingOfficeIcon, UserGroupIcon, DocumentDuplicateIcon, CircleStackIcon, ChartBarIcon } from './icons.tsx';
 import AiCockpit from './matrix/AiCockpit.tsx';
 import TaskListTab from './matrix/TaskListTab.tsx';
 import CompanyMatrixTab from './matrix/CompanyMatrixTab.tsx';
 import DepartmentAssignmentTab from './matrix/DepartmentAssignmentTab.tsx';
+import PersonnelManagerTab from './matrix/PersonnelManagerTab.tsx';
 import VersionManagerTab from './matrix/VersionManagerTab.tsx';
+import MatrixAuditTab from './matrix/MatrixAuditTab.tsx';
 import TaskDashboardTab from './matrix/TaskDashboardTab.tsx';
 import ProcessLookupTab from './matrix/ProcessLookupTab.tsx';
-import MatrixAuditTab from './matrix/MatrixAuditTab.tsx';
 import * as versionManager from '../services/versionManager.ts';
 
-
-type MainTab = 'cockpit' | 'view-tasks' | 'lookup' | 'audit';
-type CockpitTab = 'tasks' | 'company-matrix' | 'detail-assignment' | 'versions';
+type MatrixTab = 'tasks' | 'company' | 'department' | 'personnel' | 'versions' | 'audit' | 'dashboard' | 'process';
 
 interface TaskMatrixBuilderProps {
+    tasks: Task[];
+    setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
     departments: Department[];
+    setDepartments: React.Dispatch<React.SetStateAction<Department[]>>;
     roles: Role[];
+    setRoles: React.Dispatch<React.SetStateAction<Role[]>>;
+    generatedTaskMarkdown: string;
+    setGeneratedTaskMarkdown: React.Dispatch<React.SetStateAction<string>>;
+    companyMatrixAssignments: Record<string, Record<string, string>>;
+    setCompanyMatrixAssignments: React.Dispatch<React.SetStateAction<Record<string, Record<string, string>>>>;
+    departmentalAssignments: Record<string, Record<string, string>>;
+    setDepartmentalAssignments: React.Dispatch<React.SetStateAction<Record<string, Record<string, string>>>>;
+    versions: VersionInfo[];
+    setVersions: React.Dispatch<React.SetStateAction<VersionInfo[]>>;
 }
 
-const TaskMatrixBuilder: React.FC<TaskMatrixBuilderProps> = ({ departments, roles }) => {
-    const [activeMainTab, setActiveMainTab] = useState<MainTab>('cockpit');
-    const [activeCockpitTab, setActiveCockpitTab] = useState<CockpitTab>('tasks');
+const parseMarkdownTable = (markdown: string): { headers: string[], rows: string[][] } => {
+    if (!markdown) return { headers: [], rows: [] };
+    const lines = markdown.split('\n').map(line => line.trim()).filter(line => line.startsWith('|'));
+    if (lines.length < 2) return { headers: [], rows: [] };
+    
+    const headers = lines[0].split('|').map(h => h.trim()).filter(Boolean);
+    const rows = lines.slice(2).map(line => line.split('|').map(cell => cell.trim()).filter((_, i) => i > 0 && i <= headers.length));
+    return { headers, rows };
+};
+
+
+const TaskMatrixBuilder: React.FC<TaskMatrixBuilderProps> = ({
+    tasks, setTasks, departments, setDepartments, roles, setRoles,
+    generatedTaskMarkdown, setGeneratedTaskMarkdown,
+    companyMatrixAssignments, setCompanyMatrixAssignments,
+    departmentalAssignments, setDepartmentalAssignments,
+    versions, setVersions
+}) => {
+    const [activeTab, setActiveTab] = useState<MatrixTab>('tasks');
     const [isLoading, setIsLoading] = useState(false);
     
-    // State for the entire workflow
-    const [contextInputs, setContextInputs] = useState<MatrixContextInput[]>(MATRIX_BUILDER_INITIAL_INPUTS);
-    const [tasks, setTasks] = useState<Task[]>([]);
-    const [generatedTaskMarkdown, setGeneratedTaskMarkdown] = useState('');
-    const [companyMatrixAssignments, setCompanyMatrixAssignments] = useState<Record<string, Record<string, string>>>({});
-    const [departmentalAssignments, setDepartmentalAssignments] = useState<Record<string, Record<string, string>>>({});
-
-    // New state for AI Advisor
+    // AI Cockpit State
+    const [contextInputs, setContextInputs] = useState([
+        { id: 1, question: "Mô tả ngắn gọn về Doanh nghiệp", answer: "" },
+        { id: 2, question: "Quy trình/Hoạt động chính", answer: "" },
+        { id: 3, question: "Kỳ vọng về Phân công", answer: "" }
+    ]);
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-    const [lastAiResponse, setLastAiResponse] = useState<string>('');
+    const [lastAiResponse, setLastAiResponse] = useState('');
     const [isAiCockpitCollapsed, setIsAiCockpitCollapsed] = useState(false);
     const [attachedFile, setAttachedFile] = useState<File | null>(null);
-    
-    // State for version management
-    const [versions, setVersions] = useState<VersionInfo[]>([]);
 
-
-    // Load active matrix and versions from local storage on initial render
+    // Save active state to local storage on change
     useEffect(() => {
-        const activeData = versionManager.loadActiveMatrix();
-        if (activeData) {
-            setTasks(activeData.tasks || []);
-            setCompanyMatrixAssignments(activeData.companyAssignments || {});
-            setDepartmentalAssignments(activeData.departmentalAssignments || {});
-            setGeneratedTaskMarkdown(activeData.generatedTaskMarkdown || '');
-            console.log("Loaded active matrix from storage.");
-        }
-        setVersions(versionManager.getVersions());
-    }, []);
-    
-    const handleContextChange = (id: number, answer: string) => {
-        setContextInputs(prevInputs => 
-            prevInputs.map(input => 
-                input.id === id ? { ...input, answer } : input
-            )
-        );
-    };
-
-    const handleApplyToNote = (content: string) => {
-        if (contextInputs.length === 0) return;
-        
-        // Always target the last input for simplicity and predictability
-        const targetInput = contextInputs[contextInputs.length - 1];
-
-        const currentAnswer = targetInput.answer.startsWith("VD:") ? '' : targetInput.answer;
-        
-        handleContextChange(targetInput.id, (currentAnswer ? currentAnswer + '\n\n' : '') + `[AI Ghi chú]:\n${content}`);
-        
-        alert('Đã áp dụng ghi chú vào mục cuối cùng: "Kỳ vọng về Phân công".');
-    };
+        const activeData: VersionData = {
+            tasks, departments, roles, generatedTaskMarkdown,
+            // FIX: Corrected typo from `companyAssignments` to `companyMatrixAssignments` to match prop name.
+            companyAssignments: companyMatrixAssignments, departmentalAssignments
+        };
+        versionManager.saveActiveMatrix(activeData);
+    // FIX: Corrected typo in dependency array from `companyAssignments` to `companyMatrixAssignments`.
+    }, [tasks, departments, roles, generatedTaskMarkdown, companyMatrixAssignments, departmentalAssignments]);
 
     const handleTasksGenerated = (markdown: string) => {
         setGeneratedTaskMarkdown(markdown);
-        try {
-            const lines = markdown.split('\n').filter(line => line.trim().startsWith('|') && !line.includes('---'));
-            const headerLine = lines[0];
-            const isTwoColumn = headerLine.split('|').length - 2 === 2;
+        const { rows } = parseMarkdownTable(markdown);
+        const newTasks: Task[] = rows.map((row, index) => {
+            const [code, name] = row;
+            const isHeader = !code && name.includes('**');
+            const nameCleaned = name.replace(/\*\*/g, '');
+            
+            let mc1 = '', mc2 = '', mc3 = '', mc4 = '';
+            if (code) {
+                mc1 = code.substring(0, 2) || '';
+                mc2 = code.substring(0, 3) || '';
+                mc3 = code.substring(0, 4) || '';
+                mc4 = code.substring(0, 5) || '';
+            }
 
-            if (!isTwoColumn) throw new Error("Expecting a 2-column markdown table for tasks.");
-
-            const parsedTasks: Task[] = lines.slice(1).map((line, index) => {
-                const columns = line.split('|').map(c => c.trim()).slice(1,-1);
-                const hierarchicalCode = columns[0] || '';
-                const name = columns[1] || 'Unnamed Task';
-                const isGroup = name.startsWith('**');
-                
-                let mc1 = '', mc2 = '', mc3 = '', mc4 = '';
-                if (hierarchicalCode.match(/^[A-Z][0-9]+$/)) {
-                    const letter = hierarchicalCode.substring(0,1);
-                    const numbers = hierarchicalCode.substring(1);
-                    if (numbers.length >= 1) mc1 = letter + numbers.substring(0, 1);
-                    if (numbers.length >= 2) mc2 = letter + numbers.substring(0, 2);
-                    if (numbers.length >= 3) mc3 = letter + numbers.substring(0, 3);
-                    if (numbers.length >= 4) mc4 = letter + numbers.substring(0, 4);
-                }
-
-                return {
-                    id: `task-${index}`,
-                    rowNumber: index + 1,
-                    mc1, mc2, mc3, mc4,
-                    name: name.replace(/\*\*/g, ''),
-                    isGroupHeader: isGroup,
-                    assignments: {}
-                };
-            });
-            setTasks(parsedTasks);
-            setActiveCockpitTab('tasks');
-        } catch (error) {
-            console.error("Error parsing task markdown:", error);
-            alert("Đã có lỗi khi phân tích danh sách công việc từ AI. Vui lòng thử lại.");
-            setTasks([]);
-        }
+            return {
+                id: `task-${Date.now()}-${index}`,
+                rowNumber: index + 1,
+                mc1, mc2, mc3, mc4,
+                name: nameCleaned,
+                isGroupHeader: isHeader,
+                assignments: {}
+            };
+        });
+        setTasks(newTasks);
+        setActiveTab('tasks');
     };
     
-    const handleCompanyMatrixGenerated = (markdown: string) => {
-        try {
-            const lines = markdown.split('\n').filter(line => line.trim().startsWith('|') && !line.includes('---'));
-            if (lines.length < 2) return;
+     const handleCompanyMatrixGenerated = (markdown: string) => {
+        const { headers, rows } = parseMarkdownTable(markdown);
+        const deptHeaders = headers.slice(5);
+        const newAssignments: Record<string, Record<string, string>> = {};
 
-            const headerCells = lines[0].split('|').map(h => h.trim()).slice(1, -1);
-            const deptHeaders = headerCells.slice(5); // Department names start from column 6
-            const newAssignments: Record<string, Record<string, string>> = {};
-
-            lines.slice(1).forEach((line, index) => {
-                if (index >= tasks.length) return;
-                const task = tasks[index];
-                if (task.isGroupHeader) return;
-
-                const cells = line.split('|').map(c => c.trim()).slice(1, -1);
-                const assignmentRow: Record<string, string> = {};
-
+        rows.forEach((row, index) => {
+            const task = tasks[index];
+            if (task && !task.isGroupHeader) {
+                const assignmentsForRow: Record<string, string> = {};
                 deptHeaders.forEach((deptName, deptIndex) => {
-                    const roleSymbol = cells[5 + deptIndex];
-                    if (roleSymbol) {
-                        const dept = departments.find(d => d.name === deptName);
-                        if (dept) {
-                             assignmentRow[dept.code] = roleSymbol;
+                    const dept = departments.find(d => d.name === deptName);
+                    if (dept) {
+                        const role = row[deptIndex + 5];
+                        if (role) {
+                            assignmentsForRow[dept.code] = role;
                         }
                     }
                 });
-                newAssignments[task.id] = assignmentRow;
-            });
+                newAssignments[task.id] = assignmentsForRow;
+            }
+        });
 
-            setCompanyMatrixAssignments(newAssignments);
-            setActiveCockpitTab('company-matrix');
-        } catch (error) {
-            console.error("Error parsing company matrix:", error);
-            alert("Đã có lỗi khi phân tích ma trận cấp công ty từ AI.");
-        }
+        setCompanyMatrixAssignments(newAssignments);
+        setActiveTab('company');
     };
+
+    const loadVersionData = (data: VersionData) => {
+        setTasks(data.tasks || []);
+        setDepartments(data.departments || []);
+        setRoles(data.roles || []);
+        setGeneratedTaskMarkdown(data.generatedTaskMarkdown || '');
+        setCompanyMatrixAssignments(data.companyAssignments || {});
+        setDepartmentalAssignments(data.departmentalAssignments || {});
+    };
+
+    const tabs = [
+        { id: 'tasks', label: 'Danh sách Nhiệm vụ', icon: <ListBulletIcon /> },
+        { id: 'company', label: 'Ma trận Cấp Công ty', icon: <TableCellsIcon /> },
+        { id: 'department', label: 'Phân nhiệm Chi tiết', icon: <UserGroupIcon /> },
+        { id: 'personnel', label: 'Quản lý Nhân sự', icon: <BuildingOfficeIcon /> },
+        { id: 'process', label: 'Tra cứu Quy trình', icon: <DocumentDuplicateIcon /> },
+        { id: 'audit', label: 'Kiểm tra Logic', icon: <CircleStackIcon /> },
+        { id: 'dashboard', label: 'Bảng Tổng hợp', icon: <ChartBarIcon /> },
+        { id: 'versions', label: 'Quản lý Phiên bản', icon: <CircleStackIcon /> },
+    ];
     
-     const handleSaveVersion = () => {
-        if (tasks.length === 0) {
-            alert("Không có dữ liệu ma trận để lưu.");
-            return;
-        }
-        const versionName = prompt("Nhập tên cho phiên bản này:", `Phiên bản ngày ${new Date().toLocaleDateString()}`);
-        if (versionName && versionName.trim()) {
-            const versionData: VersionData = {
-                tasks,
-                companyAssignments: companyMatrixAssignments,
-                departmentalAssignments,
-                generatedTaskMarkdown,
-                departments,
-                roles
-            };
-            const newVersions = versionManager.saveVersion(versionName.trim(), versionData);
-            setVersions(newVersions);
-            alert(`Đã lưu thành công phiên bản '${versionName.trim()}'.\nBạn có thể xem lại trong tab '4. Quản lý Phiên bản'.`);
-        }
-    };
-
-    const handleLoadVersion = (data: VersionData) => {
-        if (window.confirm("Thao tác này sẽ ghi đè toàn bộ dữ liệu làm việc hiện tại. Bạn có chắc chắn muốn tải phiên bản này không?")) {
-            setTasks(data.tasks);
-            setCompanyMatrixAssignments(data.companyAssignments);
-            setDepartmentalAssignments(data.departmentalAssignments);
-            setGeneratedTaskMarkdown(data.generatedTaskMarkdown);
-            // Departments and roles are now managed globally, so we don't load them here
-            // to avoid overwriting company settings.
-            setActiveCockpitTab('tasks');
-            alert("Đã tải phiên bản thành công vào buồng lái.");
-        }
-    };
-
-    const handleActivateMatrix = () => {
-        if (tasks.length === 0) {
-            alert("Không có dữ liệu để kích hoạt.");
-            return;
-        }
-        if (window.confirm("Hành động này sẽ lưu ma trận hiện tại làm phiên bản hoạt động chính.\n\nDữ liệu này sẽ được tự động tải lại vào lần sau khi bạn mở ứng dụng.\n\nBạn có chắc chắn muốn tiếp tục?")) {
-            const dataToSave: VersionData = {
-                tasks,
-                companyAssignments: companyMatrixAssignments,
-                departmentalAssignments,
-                generatedTaskMarkdown,
-                departments,
-                roles
-            };
-            versionManager.saveActiveMatrix(dataToSave);
-            alert('Ma trận đã được kích hoạt thành công!\n\nPhiên bản này sẽ được tự động tải vào lần làm việc tiếp theo của bạn.');
-        }
-    };
-
-    const handleRenameVersion = (id: string, newName: string) => {
-        const updatedVersions = versionManager.renameVersion(id, newName);
-        setVersions(updatedVersions);
-    };
-
-    const handleDeleteVersion = (id: string) => {
-        const updatedVersions = versionManager.deleteVersion(id);
-        setVersions(updatedVersions);
-    };
-
-
-    const renderCockpitContent = () => {
-        switch(activeCockpitTab) {
+    const renderContent = () => {
+        switch (activeTab) {
             case 'tasks': return <TaskListTab tasks={tasks} setTasks={setTasks} isLoading={isLoading} />;
-            case 'company-matrix': return <CompanyMatrixTab tasks={tasks} setTasks={setTasks} departments={departments} assignments={companyMatrixAssignments} onSaveVersion={handleSaveVersion} onActivateMatrix={handleActivateMatrix} />;
-            case 'detail-assignment': return <DepartmentAssignmentTab tasks={tasks} roles={roles} departments={departments} allAssignments={departmentalAssignments} setAllAssignments={setDepartmentalAssignments} companyAssignments={companyMatrixAssignments} onSaveVersion={handleSaveVersion} onActivateMatrix={handleActivateMatrix} />;
-            case 'versions': return <VersionManagerTab versions={versions} onLoadVersion={handleLoadVersion} onRenameVersion={handleRenameVersion} onDeleteVersion={handleDeleteVersion} roles={roles} departments={departments}/>;
-            default: return null;
-        }
-    };
-    
-    const renderMainContent = () => {
-        switch(activeMainTab) {
-            case 'cockpit':
-                return (
-                    <div className="flex-1 flex flex-col min-h-0">
-                        <div className="border-b border-slate-200 flex-shrink-0">
-                             <div className="flex space-x-1 px-2 overflow-x-auto">
-                                {[{id: 'tasks', label: '1. DS Công việc'}, {id: 'company-matrix', label: '2. Ma trận Cấp Công ty'}, {id: 'detail-assignment', label: '3. Phân nhiệm Chi tiết'}, {id: 'versions', label: '4. Quản lý Phiên bản'}].map(tab => (
-                                    <button key={tab.id} onClick={() => setActiveCockpitTab(tab.id as CockpitTab)} className={`px-3 py-2 text-sm font-medium whitespace-nowrap ${activeCockpitTab === tab.id ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
-                                        {tab.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="flex-1 p-2 overflow-auto">
-                            {renderCockpitContent()}
-                        </div>
-                    </div>
-                );
-            case 'view-tasks': return <TaskDashboardTab tasks={tasks} roles={roles} departments={departments} companyAssignments={companyMatrixAssignments} departmentalAssignments={departmentalAssignments} />;
-            case 'lookup': return <ProcessLookupTab tasks={tasks} />;
+            case 'company': return <CompanyMatrixTab tasks={tasks} departments={departments} assignments={companyMatrixAssignments} setAssignments={setCompanyMatrixAssignments} isLoading={isLoading} />;
+            case 'department': return <DepartmentAssignmentTab tasks={tasks} roles={roles} departments={departments} companyAssignments={companyMatrixAssignments} departmentalAssignments={departmentalAssignments} setDepartmentalAssignments={setDepartmentalAssignments} />;
+            case 'personnel': return <PersonnelManagerTab departments={departments} setDepartments={setDepartments} roles={roles} setRoles={setRoles} />;
+            // FIX: Corrected typo from `companyAssignments` to `companyMatrixAssignments` when constructing the `currentData` prop.
+            case 'versions': return <VersionManagerTab versions={versions} setVersions={setVersions} currentData={{ tasks, departments, roles, generatedTaskMarkdown, companyAssignments: companyMatrixAssignments, departmentalAssignments }} loadVersionData={loadVersionData} />;
             case 'audit': return <MatrixAuditTab tasks={tasks} roles={roles} departments={departments} companyAssignments={companyMatrixAssignments} departmentalAssignments={departmentalAssignments} />;
-            default: return <div className="p-4 text-slate-500">Chức năng này đang được xây dựng.</div>;
+            case 'dashboard': return <TaskDashboardTab tasks={tasks} roles={roles} departments={departments} companyAssignments={companyMatrixAssignments} departmentalAssignments={departmentalAssignments} />;
+            case 'process': return <ProcessLookupTab tasks={tasks} />;
+            default: return null;
         }
     };
 
     return (
-        <div className="h-full flex flex-col bg-white text-slate-800 text-sm">
-             <header className="flex-shrink-0 p-3 border-b border-slate-200 flex space-x-2 overflow-x-auto">
-                 {[{id: 'cockpit', label: 'Xây dựng Ma trận phân nhiệm'}, {id: 'view-tasks', label: 'Xem Nhiệm vụ'}, {id: 'lookup', label: 'Tra cứu Quy trình'}, {id: 'audit', label: 'Kiểm tra Ma trận'}].map(tab => (
-                    <button key={tab.id} onClick={() => setActiveMainTab(tab.id as MainTab)} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeMainTab === tab.id ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                        {tab.label}
-                    </button>
-                ))}
-            </header>
-            <div className="flex-1 flex min-h-0">
-                {/* Left Panel: Work Area */}
-                <div className="flex-[2] border-r border-slate-200 flex flex-col min-h-0">
-                    {renderMainContent()}
+        <div className="h-full flex">
+            {/* Main Content */}
+            <div className="flex-[3] flex flex-col">
+                <div className="flex-shrink-0 bg-white p-2 border-b border-slate-200">
+                     <div className="flex items-center space-x-1">
+                        {tabs.map(tab => (
+                            <button key={tab.id} onClick={() => setActiveTab(tab.id as MatrixTab)} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === tab.id ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>
+                                {tab.icon} {tab.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-                {/* Right Panel: AI Cockpit */}
-                <AiCockpit
-                    contextInputs={contextInputs}
-                    onContextChange={handleContextChange}
-                    onTasksGenerated={handleTasksGenerated}
-                    onCompanyMatrixGenerated={handleCompanyMatrixGenerated}
-                    isLoading={isLoading}
-                    setIsLoading={setIsLoading}
-                    tasksGenerated={tasks.length > 0}
-                    generatedTaskMarkdown={generatedTaskMarkdown}
-                    departments={departments.sort((a,b) => a.priority - b.priority)}
-                    chatMessages={chatMessages}
-                    setChatMessages={setChatMessages}
-                    lastAiResponse={lastAiResponse}
-                    setLastAiResponse={setLastAiResponse}
-                    isAiCockpitCollapsed={isAiCockpitCollapsed}
-                    setIsAiCockpitCollapsed={setIsAiCockpitCollapsed}
-                    attachedFile={attachedFile}
-                    setAttachedFile={setAttachedFile}
-                    onApplyToNote={handleApplyToNote}
-                />
+                <main className="flex-1 overflow-auto bg-white">
+                    {renderContent()}
+                </main>
             </div>
+            
+            {/* AI Cockpit */}
+            <AiCockpit 
+                contextInputs={contextInputs}
+                onContextChange={(id, answer) => setContextInputs(prev => prev.map(i => i.id === id ? { ...i, answer } : i))}
+                onTasksGenerated={handleTasksGenerated}
+                onCompanyMatrixGenerated={handleCompanyMatrixGenerated}
+                isLoading={isLoading}
+                setIsLoading={setIsLoading}
+                tasksGenerated={tasks.length > 0}
+                generatedTaskMarkdown={generatedTaskMarkdown}
+                departments={departments}
+                chatMessages={chatMessages}
+                setChatMessages={setChatMessages}
+                lastAiResponse={lastAiResponse}
+                setLastAiResponse={setLastAiResponse}
+                isAiCockpitCollapsed={isAiCockpitCollapsed}
+                setIsAiCockpitCollapsed={setIsAiCockpitCollapsed}
+                attachedFile={attachedFile}
+                setAttachedFile={setAttachedFile}
+                onApplyToNote={(content) => {
+                    const currentNote = contextInputs[0].answer;
+                    setContextInputs(prev => prev.map(i => i.id === 1 ? {...i, answer: `${currentNote}\n\n[AI Ghi chú]:\n${content}`} : i));
+                }}
+            />
         </div>
     );
 };
