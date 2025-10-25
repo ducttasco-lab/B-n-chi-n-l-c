@@ -111,7 +111,8 @@ const ProcessLookupTab: React.FC<ProcessLookupTabProps> = ({ tasks }) => {
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && selectedTask) {
-            const newFiles = Array.from(event.target.files);
+            // FIX: Explicitly type `newFiles` as File[] to resolve type inference issues where `file` was `unknown`.
+            const newFiles: File[] = Array.from(event.target.files);
             for (const file of newFiles) {
                 const updatedFiles = await processLookupService.addFileToTask(selectedTask.id, file);
                 setTaskFiles(prev => ({ ...prev, [selectedTask!.id]: updatedFiles }));

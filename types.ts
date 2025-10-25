@@ -7,6 +7,13 @@ export interface ChatMessage {
   isMarkdown?: boolean;
 }
 
+export interface Conversation {
+  id: string;
+  title: string;
+  timestamp: number;
+  messages: ChatMessage[];
+}
+
 export type KpiStatus = 'Good' | 'Warning' | 'Bad' | 'Neutral';
 
 
