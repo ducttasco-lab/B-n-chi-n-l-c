@@ -4,6 +4,22 @@ import { VersionInfo, VersionData } from '../types.ts';
 const METADATA_KEY = 'matrix_versions_metadata';
 const DATA_KEY_PREFIX = 'matrix_version_data_';
 export const ACTIVATE_MATRIX_KEY = 'active_matrix_data';
+const ACTIVE_VERSION_ID_KEY = 'active_version_id';
+
+
+// --- Active Version ID Management ---
+
+export const getActiveVersionId = (): string | null => {
+    return localStorage.getItem(ACTIVE_VERSION_ID_KEY);
+};
+
+export const setActiveVersionId = (id: string | null) => {
+    if (id) {
+        localStorage.setItem(ACTIVE_VERSION_ID_KEY, id);
+    } else {
+        localStorage.removeItem(ACTIVE_VERSION_ID_KEY);
+    }
+};
 
 
 // --- Version Management ---
@@ -71,6 +87,11 @@ export const deleteVersion = (versionId: string): VersionInfo[] => {
     localStorage.setItem(METADATA_KEY, JSON.stringify(updatedVersions));
     localStorage.removeItem(`${DATA_KEY_PREFIX}${versionId}`);
     
+    // If the deleted version was the active one, clear the active ID
+    if (getActiveVersionId() === versionId) {
+        setActiveVersionId(null);
+    }
+
     return updatedVersions.sort((a, b) => b.timestamp - a.timestamp);
 };
 

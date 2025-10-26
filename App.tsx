@@ -31,22 +31,37 @@ const App: React.FC = () => {
     const [companyMatrixAssignments, setCompanyMatrixAssignments] = useState<Record<string, Record<string, string>>>({});
     const [departmentalAssignments, setDepartmentalAssignments] = useState<Record<string, Record<string, string>>>({});
     const [versions, setVersions] = useState<VersionInfo[]>([]);
+    const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
 
     // Load active matrix and versions from local storage on initial render
     useEffect(() => {
         const activeData = versionManager.loadActiveMatrix();
         if (activeData) {
-            setTasks(activeData.tasks || []);
-            setCompanyMatrixAssignments(activeData.companyAssignments || {});
-            setDepartmentalAssignments(activeData.departmentalAssignments || {});
-            setGeneratedTaskMarkdown(activeData.generatedTaskMarkdown || '');
-            setDepartments(activeData.departments || MOCK_DEPARTMENTS);
-            setRoles(activeData.roles || MOCK_ROLES);
+            loadVersionData(activeData); // Use the centralized function
             console.log("Loaded active matrix from storage.");
         }
         setVersions(versionManager.getVersions());
+        setActiveVersionId(versionManager.getActiveVersionId());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
     // --- END OF LIFTED STATE ---
+
+    // Centralized function to update the matrix state
+    const loadVersionData = (data: VersionData) => {
+        setTasks(data.tasks || []);
+        setCompanyMatrixAssignments(data.companyAssignments || {});
+        setDepartmentalAssignments(data.departmentalAssignments || {});
+        setGeneratedTaskMarkdown(data.generatedTaskMarkdown || '');
+        setDepartments(data.departments || MOCK_DEPARTMENTS);
+        setRoles(data.roles || MOCK_ROLES);
+    };
+    
+    // Centralized function to set the active version
+    const handleActivateVersion = (versionId: string | null) => {
+        versionManager.setActiveVersionId(versionId); // Persist to local storage
+        setActiveVersionId(versionId); // Update app state
+    };
+
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -80,6 +95,9 @@ const App: React.FC = () => {
                                     companyMatrixAssignments={companyMatrixAssignments} setCompanyMatrixAssignments={setCompanyMatrixAssignments}
                                     departmentalAssignments={departmentalAssignments} setDepartmentalAssignments={setDepartmentalAssignments}
                                     versions={versions} setVersions={setVersions}
+                                    loadVersionData={loadVersionData}
+                                    activeVersionId={activeVersionId}
+                                    setActiveVersionId={handleActivateVersion}
                                  />;
             case 'goals': return <GoalManager 
                                     departments={departments}

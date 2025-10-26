@@ -12,7 +12,6 @@ import VersionManagerTab from './matrix/VersionManagerTab.tsx';
 import MatrixAuditTab from './matrix/MatrixAuditTab.tsx';
 import TaskDashboardTab from './matrix/TaskDashboardTab.tsx';
 import ProcessLookupTab from './matrix/ProcessLookupTab.tsx';
-import * as versionManager from '../services/versionManager.ts';
 import { parseTasksFromMarkdown } from '../../utils/markdown.ts';
 
 type MatrixTab = 'tasks' | 'company' | 'department' | 'personnel' | 'versions' | 'audit' | 'dashboard' | 'process';
@@ -32,6 +31,9 @@ interface TaskMatrixBuilderProps {
     setDepartmentalAssignments: React.Dispatch<React.SetStateAction<Record<string, Record<string, string>>>>;
     versions: VersionInfo[];
     setVersions: React.Dispatch<React.SetStateAction<VersionInfo[]>>;
+    loadVersionData: (data: VersionData) => void;
+    activeVersionId: string | null;
+    setActiveVersionId: (id: string | null) => void;
 }
 
 const parseMarkdownTable = (markdown: string): { headers: string[], rows: string[][] } => {
@@ -50,9 +52,12 @@ const TaskMatrixBuilder: React.FC<TaskMatrixBuilderProps> = ({
     generatedTaskMarkdown, setGeneratedTaskMarkdown,
     companyMatrixAssignments, setCompanyMatrixAssignments,
     departmentalAssignments, setDepartmentalAssignments,
-    versions, setVersions
+    versions, setVersions,
+    loadVersionData,
+    activeVersionId,
+    setActiveVersionId
 }) => {
-    const [activeTab, setActiveTab] = useState<MatrixTab>('tasks');
+    const [activeTab, setActiveTab] = useState<MatrixTab>('versions');
     const [isLoading, setIsLoading] = useState(false);
     
     // AI Cockpit State
@@ -65,17 +70,6 @@ const TaskMatrixBuilder: React.FC<TaskMatrixBuilderProps> = ({
     const [lastAiResponse, setLastAiResponse] = useState('');
     const [isAiCockpitCollapsed, setIsAiCockpitCollapsed] = useState(false);
     const [attachedFile, setAttachedFile] = useState<File | null>(null);
-
-    // Save active state to local storage on change
-    useEffect(() => {
-        const activeData: VersionData = {
-            tasks, departments, roles, generatedTaskMarkdown,
-            // FIX: Corrected typo from `companyAssignments` to `companyMatrixAssignments` to match prop name.
-            companyAssignments: companyMatrixAssignments, departmentalAssignments
-        };
-        versionManager.saveActiveMatrix(activeData);
-    // FIX: Corrected typo in dependency array from `companyAssignments` to `companyMatrixAssignments`.
-    }, [tasks, departments, roles, generatedTaskMarkdown, companyMatrixAssignments, departmentalAssignments]);
 
     const handleTasksGenerated = (markdown: string) => {
         setGeneratedTaskMarkdown(markdown);
@@ -110,15 +104,6 @@ const TaskMatrixBuilder: React.FC<TaskMatrixBuilderProps> = ({
         setActiveTab('company');
     };
 
-    const loadVersionData = (data: VersionData) => {
-        setTasks(data.tasks || []);
-        setDepartments(data.departments || []);
-        setRoles(data.roles || []);
-        setGeneratedTaskMarkdown(data.generatedTaskMarkdown || '');
-        setCompanyMatrixAssignments(data.companyAssignments || {});
-        setDepartmentalAssignments(data.departmentalAssignments || {});
-    };
-
     const tabs = [
         { id: 'tasks', label: 'Danh sách Nhiệm vụ', icon: <ListBulletIcon /> },
         { id: 'company', label: 'Ma trận Cấp Công ty', icon: <TableCellsIcon /> },
@@ -136,8 +121,14 @@ const TaskMatrixBuilder: React.FC<TaskMatrixBuilderProps> = ({
             case 'company': return <CompanyMatrixTab tasks={tasks} departments={departments} assignments={companyMatrixAssignments} setAssignments={setCompanyMatrixAssignments} isLoading={isLoading} />;
             case 'department': return <DepartmentAssignmentTab tasks={tasks} roles={roles} departments={departments} companyAssignments={companyMatrixAssignments} departmentalAssignments={departmentalAssignments} setDepartmentalAssignments={setDepartmentalAssignments} />;
             case 'personnel': return <PersonnelManagerTab departments={departments} setDepartments={setDepartments} roles={roles} setRoles={setRoles} />;
-            // FIX: Corrected typo from `companyAssignments` to `companyMatrixAssignments` when constructing the `currentData` prop.
-            case 'versions': return <VersionManagerTab versions={versions} setVersions={setVersions} currentData={{ tasks, departments, roles, generatedTaskMarkdown, companyAssignments: companyMatrixAssignments, departmentalAssignments }} loadVersionData={loadVersionData} />;
+            case 'versions': return <VersionManagerTab 
+                                        versions={versions} 
+                                        setVersions={setVersions} 
+                                        currentData={{ tasks, departments, roles, generatedTaskMarkdown, companyAssignments: companyMatrixAssignments, departmentalAssignments }} 
+                                        loadVersionData={loadVersionData} 
+                                        activeVersionId={activeVersionId}
+                                        setActiveVersionId={setActiveVersionId}
+                                     />;
             case 'audit': return <MatrixAuditTab tasks={tasks} roles={roles} departments={departments} companyAssignments={companyMatrixAssignments} departmentalAssignments={departmentalAssignments} />;
             case 'dashboard': return <TaskDashboardTab tasks={tasks} roles={roles} departments={departments} companyAssignments={companyMatrixAssignments} departmentalAssignments={departmentalAssignments} />;
             case 'process': return <ProcessLookupTab tasks={tasks} />;
