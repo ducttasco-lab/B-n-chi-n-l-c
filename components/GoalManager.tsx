@@ -1,7 +1,7 @@
 // components/GoalManager.tsx
-import React, { useState } from 'react';
-import { Goal, Department, Role, UserTask, PredefinedKPI } from '../types.ts';
-import { MOCK_GOALS, MOCK_DEPARTMENTS, MOCK_ROLES, MOCK_USER_TASKS, MOCK_PREDEFINED_KPIS } from '../constants.tsx';
+import React, { useState, useMemo } from 'react';
+import { Goal, Department, Role, UserTask, PredefinedKPI, Task } from '../types.ts';
+import { MOCK_GOALS, MOCK_PREDEFINED_KPIS } from '../constants.tsx';
 import GoalSetupTab from './goal/GoalSetupTab.tsx';
 import GoalTrackingTab from './goal/GoalTrackingTab.tsx';
 import GoalDashboardTab from './goal/GoalDashboardTab.tsx';
@@ -10,16 +10,59 @@ import { TargetIcon, ListChecksIcon, TrophyIcon, BookOpenIcon } from './icons.ts
 
 type GoalTab = 'setup' | 'tracking' | 'dashboard' | 'kpi-library';
 
-const GoalManager: React.FC = () => {
+interface GoalManagerProps {
+    departments: Department[];
+    roles: Role[];
+    tasks: Task[];
+    companyMatrixAssignments: Record<string, Record<string, string>>;
+    departmentalAssignments: Record<string, Record<string, string>>;
+}
+
+const GoalManager: React.FC<GoalManagerProps> = ({
+    departments,
+    roles,
+    tasks,
+    companyMatrixAssignments,
+    departmentalAssignments,
+}) => {
     const [activeTab, setActiveTab] = useState<GoalTab>('setup');
     
-    // In a real app, this state would likely be lifted higher or managed by a global state manager (like Context or Redux)
-    // For this self-contained component, we'll manage it here.
+    // State for goals and KPI library can remain here for now
     const [goals, setGoals] = useState<Goal[]>(MOCK_GOALS);
-    const [departments] = useState<Department[]>(MOCK_DEPARTMENTS);
-    const [roles] = useState<Role[]>(MOCK_ROLES);
-    const [userTasks] = useState<UserTask[]>(MOCK_USER_TASKS);
     const [predefinedKpis, setPredefinedKpis] = useState<PredefinedKPI[]>(MOCK_PREDEFINED_KPIS);
+
+    // Dynamically generate user tasks based on the activated matrix
+    const userTasks = useMemo((): UserTask[] => {
+        const generatedUserTasks: UserTask[] = [];
+        roles.forEach(role => {
+            tasks.forEach(task => {
+                if (task.isGroupHeader) return;
+
+                // A specific assignment to a staff member overrides the department-level assignment
+                const specificRole = departmentalAssignments[task.id]?.[role.id];
+                const inheritedRole = companyMatrixAssignments[task.id]?.[role.departmentCode];
+                const finalRole = specificRole || inheritedRole;
+
+                // We only care about tasks where the user is an executor ('T') for goal setting
+                if (finalRole === 'T') {
+                    generatedUserTasks.push({
+                        id: `${task.id}-${role.id}`, // Create a unique ID for the user-task pair
+                        employeeId: role.id,
+                        rowNumber: task.rowNumber,
+                        mc1: task.mc1,
+                        mc2: task.mc2,
+                        mc3: task.mc3,
+                        mc4: task.mc4,
+                        fullCode: [task.mc1, task.mc2, task.mc3, task.mc4].filter(Boolean).join('.'),
+                        taskName: task.name,
+                        role: finalRole,
+                    });
+                }
+            });
+        });
+        return generatedUserTasks;
+    }, [tasks, roles, companyMatrixAssignments, departmentalAssignments]);
+
 
     const tabs = [
         { id: 'setup', label: 'Thiết lập Mục tiêu', icon: <TargetIcon className="w-5 h-5 mr-2" /> },

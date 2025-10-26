@@ -13,6 +13,41 @@ interface DepartmentAssignmentTabProps {
     setDepartmentalAssignments: React.Dispatch<React.SetStateAction<Record<string, Record<string, string>>>>;
 }
 
+const getDisplayCodes = (task: Task) => {
+    const d = { mc1: '', mc2: '', mc3: '', mc4: '' };
+    if (!task || task.isGroupHeader) return d;
+    
+    if (task.mc4) {
+        d.mc1 = task.mc1; d.mc2 = task.mc2; d.mc3 = task.mc3; d.mc4 = task.mc4;
+    } else if (task.mc3) {
+        d.mc1 = task.mc1; d.mc2 = task.mc2; d.mc3 = task.mc3;
+    } else if (task.mc2) {
+        d.mc1 = task.mc1; d.mc2 = task.mc2;
+    } else if (task.mc1) {
+        d.mc1 = task.mc1;
+    }
+    
+    if (d.mc4) { d.mc1 = d.mc2 = d.mc3 = ''; }
+    else if (d.mc3) { d.mc1 = d.mc2 = ''; }
+    else if (d.mc2) { d.mc1 = ''; }
+
+    return d;
+};
+
+
+const getRowClassName = (task: Task): string => {
+    const classes = ['hover:bg-slate-50'];
+    const isMC1 = task.mc1 && !task.mc2;
+    const isMC2 = task.mc2 && !task.mc3;
+
+    if (isMC2) {
+        classes.push('font-bold', 'italic');
+    } else if (isMC1) {
+        classes.push('font-bold');
+    }
+    return classes.join(' ');
+};
+
 const DepartmentAssignmentTab: React.FC<DepartmentAssignmentTabProps> = ({ 
     tasks, roles, departments, companyAssignments, departmentalAssignments, setDepartmentalAssignments 
 }) => {
@@ -89,34 +124,45 @@ const DepartmentAssignmentTab: React.FC<DepartmentAssignmentTabProps> = ({
                 <table className="min-w-full text-xs border-collapse">
                     <thead className="sticky top-0 bg-slate-100 z-10">
                         <tr>
+                            <th className="p-1 border font-semibold w-12">MC1</th>
+                            <th className="p-1 border font-semibold w-12">MC2</th>
+                            <th className="p-1 border font-semibold w-12">MC3</th>
+                            <th className="p-1 border font-semibold w-12">MC4</th>
                             <th className="p-1 border font-semibold min-w-[250px] text-left">Tên Nhiệm vụ</th>
                             <th className="p-1 border font-semibold w-16">Vai trò Phòng</th>
                             {staffInDept.map(role => <th key={role.id} className="p-1 border font-semibold w-24" title={role.title}>{role.name}</th>)}
                         </tr>
                     </thead>
                     <tbody>
-                        {tasksForDept.map(task => (
-                            <tr key={task.id} className="hover:bg-slate-50">
-                                <td className="p-1 border">{task.name}</td>
-                                <td className="p-1 border text-center font-bold">{companyAssignments[task.id]?.[selectedDept!]}</td>
-                                {staffInDept.map(role => (
-                                    <td key={role.id} className="p-0 border">
-                                        <select
-                                            value={departmentalAssignments[task.id]?.[role.id] || ''}
-                                            onChange={e => handleAssignmentChange(task.id, role.id, e.target.value)}
-                                            className="w-full h-full p-1 bg-transparent focus:bg-white outline-none"
-                                        >
-                                            <option value=""></option>
-                                            <option value="Q">Q</option>
-                                            <option value="T">T</option>
-                                            <option value="K">K</option>
-                                            <option value="B">B</option>
-                                            <option value="P">P</option>
-                                        </select>
-                                    </td>
-                                ))}
-                            </tr>
-                        ))}
+                        {tasksForDept.map(task => {
+                            const displayCodes = getDisplayCodes(task);
+                            return (
+                                <tr key={task.id} className={getRowClassName(task)}>
+                                    <td className="p-1 border text-center">{displayCodes.mc1}</td>
+                                    <td className="p-1 border text-center">{displayCodes.mc2}</td>
+                                    <td className="p-1 border text-center">{displayCodes.mc3}</td>
+                                    <td className="p-1 border text-center">{displayCodes.mc4}</td>
+                                    <td className="p-1 border">{task.name}</td>
+                                    <td className="p-1 border text-center font-bold">{companyAssignments[task.id]?.[selectedDept!]}</td>
+                                    {staffInDept.map(role => (
+                                        <td key={role.id} className="p-0 border">
+                                            <select
+                                                value={departmentalAssignments[task.id]?.[role.id] || ''}
+                                                onChange={e => handleAssignmentChange(task.id, role.id, e.target.value)}
+                                                className="w-full h-full p-1 bg-transparent focus:bg-white outline-none"
+                                            >
+                                                <option value=""></option>
+                                                <option value="Q">Q</option>
+                                                <option value="T">T</option>
+                                                <option value="K">K</option>
+                                                <option value="B">B</option>
+                                                <option value="P">P</option>
+                                            </select>
+                                        </td>
+                                    ))}
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

@@ -277,24 +277,38 @@ Chỉ trả về kết quả dưới dạng một BẢNG MARKDOWN duy nhất có
     return await generateText(prompt);
 };
 
-export const generateCompanyMatrix = async (taskListMarkdown: string, departmentNames: string[]): Promise<string | null> => {
+export const suggestAssignmentRules = async (departmentNames: string[], taskListMarkdown: string): Promise<string> => {
     const prompt = `[ĐÓNG VAI]: Bạn là một chuyên gia tư vấn tổ chức nhân sự, bậc thầy về việc xây dựng ma trận trách nhiệm QTKBP.
-[BỐI CẢNH]: Bạn được cung cấp hai bộ thông tin:
+[BỐI CẢNH]: Bạn được cung cấp:
+1. DANH SÁCH PHÒNG BAN: ${departmentNames.join(', ')}
+2. DANH SÁCH CÔNG VIỆC: (một phần được hiển thị bên dưới)
+${taskListMarkdown.split('\n').slice(0, 20).join('\n')}
+...
+[NHIỆM VỤ]: Hãy đề xuất một bộ QUY TẮC PHÂN NHIỆM CHỨC NĂNG cấp cao. Các quy tắc này sẽ là kim chỉ nam để phân vai trò QTKBP (Quyết định, Thực hiện, Kiểm soát, Báo cáo, Phối hợp) cho các phòng ban.
+[YÊU CẦU]:
+- Đưa ra các quy tắc chung dựa trên chức năng điển hình của từng phòng ban (VD: Ban Giám đốc thường 'Q' các nhiệm vụ chiến lược, Phòng Tài chính thường 'K' các vấn đề chi phí).
+- Xem xét các nhiệm vụ cụ thể trong danh sách để đưa ra các quy tắc đặc thù hơn.
+- Trình bày dưới dạng các gạch đầu dòng, rõ ràng, súc tích.
+[ĐỊNH DẠNG ĐẦU RA]: Chỉ trả về một danh sách các quy tắc phân nhiệm dạng text/markdown. KHÔNG tạo bảng ma trận. KHÔNG thêm lời bình.`;
+
+    return await generateText(prompt);
+};
+
+export const generateCompanyMatrix = async (taskListMarkdown: string, departmentNames: string[], assignmentRules: string): Promise<string | null> => {
+    const prompt = `[ĐÓNG VAI]: Bạn là một chuyên gia tư vấn tổ chức nhân sự, bậc thầy về việc xây dựng ma trận trách nhiệm QTKBP.
+[BỐI CẢNH]: Bạn được cung cấp ba bộ thông tin:
 1. **DANH SÁCH PHÒNG BAN:**
 ${departmentNames.join(', ')}
-2. **BẢNG CÔNG VIỆC CUỐI CÙNG (đã được người dùng xác nhận, có cấu trúc 4 cấp):**
+2. **BẢNG CÔNG VIỆC CUỐI CÙNG (đã được người dùng xác nhận):**
 ${taskListMarkdown}
-[NHIỆM VỤ]: Dựa trên hai bộ thông tin trên, hãy xây dựng một Ma trận Phân công Trách nhiệm (QTKBP) cấp CÔNG TY.
+3. **QUY TẮC PHÂN CÔNG BẮT BUỘC TỪ NGƯỜI DÙNG:**
+${assignmentRules}
+
+[NHIỆM VỤ]: Dựa trên TOÀN BỘ thông tin trên, hãy xây dựng một Ma trận Phân công Trách nhiệm (QTKBP) cấp CÔNG TY.
 - **Cấu trúc bảng:** Dựng lại BẢNG CÔNG VIỆC, giữ nguyên 5 cột đầu tiên (MC1, MC2, MC3, MC4, Tên Nhiệm vụ). Sau đó, thêm các cột cho từng **PHÒNG BAN** trong danh sách đã cho.
-- **Điền vai trò:** Với mỗi công việc, hãy điền các ký tự sau vào cột của **PHÒNG BAN** phù hợp:
-    - **Q (Quyết định):** Người chịu trách nhiệm cuối cùng, có quyền ra quyết định cao nhất.
-    - **T (Thực hiện):** Người/bộ phận trực tiếp thực hiện công việc.
-    - **K (Kiểm soát):** Người/bộ phận kiểm tra, giám sát chất lượng và tiến độ.
-    - **P (Phối hợp):** Người/bộ phận cần phối hợp, tham gia ý kiến.
-    - **B (Báo cáo):** Người/bộ phận cần được thông báo, báo cáo kết quả.
-- **Logic suy luận:** Hãy suy luận một cách logic dựa trên bản chất của công việc và chức năng của từng phòng ban để đưa ra phân công tối ưu nhất. Cố gắng phân bổ vai trò cho nhiều phòng ban có liên quan, tránh tập trung tất cả vào một phòng ban duy nhất.
-- **Quy tắc vàng:** Luôn đảm bảo mỗi hàng (mỗi công việc chi tiết, không phải dòng tiêu đề) chỉ CÓ DUY NHẤT một chữ 'Q'.
-- **QUY TẮC ƯU TIÊN:** Đối với các nhiệm vụ quản lý cấp cao (thường có Mã A), vai trò 'Q' hoặc 'K' nên được ưu tiên gán cho 'Ban Giám đốc' hoặc 'Hội đồng thành viên'. Đối với các nhiệm vụ tác nghiệp (Mã B), vai trò 'T' nên được gán cho các phòng ban chuyên môn.
+- **Điền vai trò:** Với mỗi công việc, hãy điền các ký tự sau vào cột của **PHÒNG BAN** phù hợp: Q, T, K, B, P.
+- **LOGIC SUY LUẬN:** TUÂN THỦ NGHIÊM NGẶT các **QUY TẮC PHÂN CÔNG** mà người dùng đã cung cấp. Dùng đó làm kim chỉ nam chính.
+- **QUY TẮC VÀNG:** Luôn đảm bảo mỗi hàng (mỗi công việc chi tiết, không phải dòng tiêu đề) chỉ CÓ DUY NHẤT một chữ 'Q'.
 [ĐỊNH DẠNG ĐẦU RA]: Chỉ trả về kết quả dưới dạng một BẢNG MARKDOWN duy nhất. KHÔNG thêm bất kỳ văn bản, lời giải thích hay bình luận nào khác.`;
 
     return await generateText(prompt);

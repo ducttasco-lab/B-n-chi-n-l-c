@@ -81,7 +81,13 @@ const App: React.FC = () => {
                                     departmentalAssignments={departmentalAssignments} setDepartmentalAssignments={setDepartmentalAssignments}
                                     versions={versions} setVersions={setVersions}
                                  />;
-            case 'goals': return <GoalManager />;
+            case 'goals': return <GoalManager 
+                                    departments={departments}
+                                    roles={roles}
+                                    tasks={tasks}
+                                    companyMatrixAssignments={companyMatrixAssignments}
+                                    departmentalAssignments={departmentalAssignments}
+                                />;
             case 'advisor': return <AiAdvisorPage />;
             case 'guide': return <UserGuide />;
             case 'settings': return <AiSettings />;

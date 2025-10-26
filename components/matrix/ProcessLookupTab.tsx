@@ -11,6 +11,32 @@ interface ProcessLookupTabProps {
     tasks: Task[];
 }
 
+// --- Helper for display logic ---
+const getDisplayCodes = (task: Task) => {
+    const d = { mc1: '', mc2: '', mc3: '', mc4: '' };
+    if (!task || task.isGroupHeader) return d;
+
+    if (task.mc4) d.mc4 = task.mc4;
+    else if (task.mc3) d.mc3 = task.mc3;
+    else if (task.mc2) d.mc2 = task.mc2;
+    else if (task.mc1) d.mc1 = task.mc1;
+    
+    return d;
+};
+
+const getRowClassName = (task: Task, selectedTask: Task | null): string => {
+    const classes = ['cursor-pointer'];
+    if (selectedTask?.id === task.id) {
+        classes.push('bg-blue-100');
+    } else {
+        classes.push('hover:bg-slate-50');
+    }
+    if (task.mc1 && !task.mc2) classes.push('font-bold');
+    if (task.mc2 && !task.mc3) classes.push('font-bold', 'italic');
+    return classes.join(' ');
+};
+
+
 // --- File Preview Modal ---
 const FilePreviewModal: React.FC<{ file: StoredFile | null; onClose: () => void }> = ({ file, onClose }) => {
     if (!file) return null;
@@ -171,7 +197,7 @@ const ProcessLookupTab: React.FC<ProcessLookupTabProps> = ({ tasks }) => {
                     <table className="min-w-full text-sm border-collapse">
                         <thead className="sticky top-0 bg-slate-100 z-10">
                             <tr>
-                                <th className="p-2 border font-semibold w-12">MC1</th>
+                                <th className="p-2 border font-bold w-12">MC1</th>
                                 <th className="p-2 border font-semibold w-12">MC2</th>
                                 <th className="p-2 border font-semibold w-12">MC3</th>
                                 <th className="p-2 border font-semibold w-12">MC4</th>
@@ -179,19 +205,22 @@ const ProcessLookupTab: React.FC<ProcessLookupTabProps> = ({ tasks }) => {
                             </tr>
                         </thead>
                          <tbody>
-                            {filteredTasks.map(task => (
-                                <tr 
-                                    key={task.id} 
-                                    onClick={() => setSelectedTask(task)}
-                                    className={`cursor-pointer ${selectedTask?.id === task.id ? 'bg-blue-100' : 'hover:bg-slate-50'}`}
-                                >
-                                    <td className="p-1 border text-center">{task.mc1}</td>
-                                    <td className="p-1 border text-center">{task.mc2}</td>
-                                    <td className="p-1 border text-center">{task.mc3}</td>
-                                    <td className="p-1 border text-center">{task.mc4}</td>
-                                    <td className="p-1 border">{task.name}</td>
-                                </tr>
-                            ))}
+                            {filteredTasks.map(task => {
+                                const displayCodes = getDisplayCodes(task);
+                                return (
+                                    <tr 
+                                        key={task.id} 
+                                        onClick={() => setSelectedTask(task)}
+                                        className={getRowClassName(task, selectedTask)}
+                                    >
+                                        <td className="p-1 border text-center">{displayCodes.mc1}</td>
+                                        <td className="p-1 border text-center">{displayCodes.mc2}</td>
+                                        <td className="p-1 border text-center">{displayCodes.mc3}</td>
+                                        <td className="p-1 border text-center">{displayCodes.mc4}</td>
+                                        <td className="p-1 border">{task.name}</td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

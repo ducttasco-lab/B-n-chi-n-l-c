@@ -10,6 +10,31 @@ interface TaskDashboardTabProps {
     departmentalAssignments: Record<string, Record<string, string>>;
 }
 
+const getDisplayCodes = (task: Task) => {
+    const d = { mc1: '', mc2: '', mc3: '', mc4: '' };
+    if (!task || task.isGroupHeader) return d;
+
+    if (task.mc4) d.mc4 = task.mc4;
+    else if (task.mc3) d.mc3 = task.mc3;
+    else if (task.mc2) d.mc2 = task.mc2;
+    else if (task.mc1) d.mc1 = task.mc1;
+    
+    return d;
+};
+
+const getRowClassName = (rowData: any): string => {
+    const classes = ['hover:bg-slate-50'];
+    // rowData can be UserTask or an object with mc columns from dept view
+    if (rowData.mc1 && !rowData.mc2) {
+        classes.push('font-bold');
+    }
+    if (rowData.mc2 && !rowData.mc3) {
+        classes.push('font-bold', 'italic');
+    }
+    return classes.join(' ');
+};
+
+
 const TaskDashboardTab: React.FC<TaskDashboardTabProps> = ({ tasks, roles, departments, companyAssignments, departmentalAssignments }) => {
     const [selectedDept, setSelectedDept] = useState<string | null>(null);
     const [selectedStaff, setSelectedStaff] = useState<string>('__ALL__');
@@ -49,11 +74,12 @@ const TaskDashboardTab: React.FC<TaskDashboardTabProps> = ({ tasks, roles, depar
             tasks.forEach(task => {
                 if(task.isGroupHeader) return;
                 
+                const displayCodes = getDisplayCodes(task);
                 const assignmentRow: any = {
-                    mc1: task.mc1,
-                    mc2: task.mc2,
-                    mc3: task.mc3,
-                    mc4: task.mc4,
+                    mc1: displayCodes.mc1,
+                    mc2: displayCodes.mc2,
+                    mc3: displayCodes.mc3,
+                    mc4: displayCodes.mc4,
                     'Tên Công việc': task.name,
                 };
                 let hasAssignmentInDept = false;
@@ -90,15 +116,15 @@ const TaskDashboardTab: React.FC<TaskDashboardTabProps> = ({ tasks, roles, depar
                 const finalRole = specificRole || inheritedRole;
 
                 if (finalRole && (!roleFilter || finalRole === roleFilter)) {
-                    // FIX: Added the missing 'employeeId' property to conform to the UserTask type.
+                    const displayCodes = getDisplayCodes(task);
                     userTasks.push({
                         id: task.id,
                         employeeId: selectedStaff,
                         rowNumber: task.rowNumber,
-                        mc1: task.mc1,
-                        mc2: task.mc2,
-                        mc3: task.mc3,
-                        mc4: task.mc4,
+                        mc1: displayCodes.mc1,
+                        mc2: displayCodes.mc2,
+                        mc3: displayCodes.mc3,
+                        mc4: displayCodes.mc4,
                         fullCode: [task.mc1, task.mc2, task.mc3, task.mc4].filter(Boolean).join('.'),
                         taskName: task.name,
                         role: finalRole,
@@ -132,12 +158,12 @@ const TaskDashboardTab: React.FC<TaskDashboardTabProps> = ({ tasks, roles, depar
             <thead className="sticky top-0 bg-slate-100 z-10">
                 <tr>
                     {['MC1','MC2','MC3','MC4', 'Vai trò', 'Tên Công việc'].map(h => 
-                        <th key={h} className="p-2 border font-semibold text-left">{h}</th>)}
+                        <th key={h} className={`p-2 border font-semibold text-left ${h === 'MC1' ? 'font-bold' : ''}`}>{h}</th>)}
                 </tr>
             </thead>
             <tbody>
                 {results.map((task: UserTask, index) => (
-                    <tr key={index} className="hover:bg-slate-50">
+                    <tr key={index} className={getRowClassName(task)}>
                         <td className="p-2 border text-center w-12">{task.mc1}</td>
                         <td className="p-2 border text-center w-12">{task.mc2}</td>
                         <td className="p-2 border text-center w-12">{task.mc3}</td>
@@ -156,12 +182,12 @@ const TaskDashboardTab: React.FC<TaskDashboardTabProps> = ({ tasks, roles, depar
             <table className="min-w-full text-sm border-collapse">
                 <thead className="sticky top-0 bg-slate-100 z-10">
                     <tr>
-                        {columns.map(col => <th key={col} className="p-2 border font-semibold text-left whitespace-nowrap">{col}</th>)}
+                        {columns.map(col => <th key={col} className={`p-2 border font-semibold text-left whitespace-nowrap ${col.toLowerCase() === 'mc1' ? 'font-bold' : ''}`}>{col}</th>)}
                     </tr>
                 </thead>
                 <tbody>
                     {results.map((row, index) => (
-                        <tr key={index} className="hover:bg-slate-50">
+                        <tr key={index} className={getRowClassName(row)}>
                             {columns.map(col => <td key={col} className={`p-2 border ${['mc1','mc2','mc3','mc4'].includes(col.toLowerCase()) ? 'text-center' : ''}`}>{row[col]}</td>)}
                         </tr>
                     ))}

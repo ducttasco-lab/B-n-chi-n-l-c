@@ -13,6 +13,7 @@ import MatrixAuditTab from './matrix/MatrixAuditTab.tsx';
 import TaskDashboardTab from './matrix/TaskDashboardTab.tsx';
 import ProcessLookupTab from './matrix/ProcessLookupTab.tsx';
 import * as versionManager from '../services/versionManager.ts';
+import { parseTasksFromMarkdown } from '../../utils/markdown.ts';
 
 type MatrixTab = 'tasks' | 'company' | 'department' | 'personnel' | 'versions' | 'audit' | 'dashboard' | 'process';
 
@@ -78,29 +79,7 @@ const TaskMatrixBuilder: React.FC<TaskMatrixBuilderProps> = ({
 
     const handleTasksGenerated = (markdown: string) => {
         setGeneratedTaskMarkdown(markdown);
-        const { rows } = parseMarkdownTable(markdown);
-        const newTasks: Task[] = rows.map((row, index) => {
-            const [code, name] = row;
-            const isHeader = !code && name.includes('**');
-            const nameCleaned = name.replace(/\*\*/g, '');
-            
-            let mc1 = '', mc2 = '', mc3 = '', mc4 = '';
-            if (code) {
-                mc1 = code.substring(0, 2) || '';
-                mc2 = code.substring(0, 3) || '';
-                mc3 = code.substring(0, 4) || '';
-                mc4 = code.substring(0, 5) || '';
-            }
-
-            return {
-                id: `task-${Date.now()}-${index}`,
-                rowNumber: index + 1,
-                mc1, mc2, mc3, mc4,
-                name: nameCleaned,
-                isGroupHeader: isHeader,
-                assignments: {}
-            };
-        });
+        const newTasks = parseTasksFromMarkdown(markdown);
         setTasks(newTasks);
         setActiveTab('tasks');
     };

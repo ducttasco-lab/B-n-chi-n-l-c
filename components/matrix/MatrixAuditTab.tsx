@@ -10,6 +10,29 @@ interface MatrixAuditTabProps {
     departmentalAssignments: Record<string, Record<string, string>>;
 }
 
+const getDisplayCodes = (task: Task) => {
+    const d = { mc1: '', mc2: '', mc3: '', mc4: '' };
+    if (!task || task.isGroupHeader) return d;
+
+    // This logic ensures only the most specific code is shown in its column
+    if (task.mc4) {
+        d.mc1 = task.mc1; d.mc2 = task.mc2; d.mc3 = task.mc3; d.mc4 = task.mc4;
+    } else if (task.mc3) {
+        d.mc1 = task.mc1; d.mc2 = task.mc2; d.mc3 = task.mc3;
+    } else if (task.mc2) {
+        d.mc1 = task.mc1; d.mc2 = task.mc2;
+    } else if (task.mc1) {
+        d.mc1 = task.mc1;
+    }
+    
+    if (d.mc4) { d.mc1 = d.mc2 = d.mc3 = ''; }
+    else if (d.mc3) { d.mc1 = d.mc2 = ''; }
+    else if (d.mc2) { d.mc1 = ''; }
+    
+    return d;
+};
+
+
 const MatrixAuditTab: React.FC<MatrixAuditTabProps> = ({ tasks, roles, companyAssignments, departmentalAssignments }) => {
     const [rules, setRules] = useState({
         missingT: true,
@@ -46,24 +69,24 @@ const MatrixAuditTab: React.FC<MatrixAuditTabProps> = ({ tasks, roles, companyAs
                 // If no specific assignment, check for inherited department role
                 const inheritedRole = companyAssignments[task.id]?.[staff.departmentCode];
                 if(inheritedRole) {
-                    finalRoles.push(inheritedRole.toUpperCase());
+                    // Split in case of multi-role assignment at company level like 'Q,T'
+                    inheritedRole.split(',').forEach(r => finalRoles.push(r.trim().toUpperCase()));
                 }
             });
 
-            if (rules.missingT && !finalRoles.includes('T')) {
-                // FIX: Removed redundant `taskId` and `taskName` properties. The `...task` spread already includes `id` and `name`.
+            // Count unique roles for the task across all staff
+            const uniqueRoles = [...new Set(finalRoles)];
+
+            if (rules.missingT && !uniqueRoles.includes('T')) {
                 newFindings.push({ ...task, findingType: "Thiếu vai trò 'Thực hiện' (T)" });
             }
-            if (rules.missingQ && !finalRoles.includes('Q')) {
-                // FIX: Removed redundant `taskId` and `taskName` properties. The `...task` spread already includes `id` and `name`.
+            if (rules.missingQ && !uniqueRoles.includes('Q')) {
                 newFindings.push({ ...task, findingType: "Thiếu vai trò 'Quyết định' (Q)" });
             }
-            if (rules.multipleQ && finalRoles.filter(r => r === 'Q').length > 1) {
-                // FIX: Removed redundant `taskId` and `taskName` properties. The `...task` spread already includes `id` and `name`.
+            if (rules.multipleQ && uniqueRoles.filter(r => r === 'Q').length > 1) {
                 newFindings.push({ ...task, findingType: "Có nhiều hơn 1 vai trò 'Quyết định' (Q)" });
             }
-            if (rules.missingK && !finalRoles.includes('K')) {
-                // FIX: Removed redundant `taskId` and `taskName` properties. The `...task` spread already includes `id` and `name`.
+            if (rules.missingK && !uniqueRoles.includes('K')) {
                 newFindings.push({ ...task, findingType: "Thiếu vai trò 'Kiểm soát' (K)" });
             }
         });
@@ -94,22 +117,31 @@ const MatrixAuditTab: React.FC<MatrixAuditTabProps> = ({ tasks, roles, companyAs
                     <thead className="sticky top-0 bg-slate-100 z-10">
                         <tr>
                             {['MC1','MC2','MC3','MC4', 'Tên Công việc', 'Nội dung Lỗi'].map(h => 
-                                <th key={h} className="p-2 border font-semibold text-left">{h}</th>)}
+                                <th key={h} className={`p-2 border font-semibold text-left ${h === 'MC1' ? 'font-bold' : ''}`}>{h}</th>)}
                         </tr>
                     </thead>
                     <tbody>
-                        {findings.map((finding, index) => (
-                            // FIX: Used `finding.id` for the key as `taskId` does not exist on AuditFinding.
-                            <tr key={`${finding.id}-${index}`} className="bg-red-50 hover:bg-red-100">
-                                <td className="p-2 border text-center w-12">{finding.mc1}</td>
-                                <td className="p-2 border text-center w-12">{finding.mc2}</td>
-                                <td className="p-2 border text-center w-12">{finding.mc3}</td>
-                                <td className="p-2 border text-center w-12">{finding.mc4}</td>
-                                {/* FIX: Used `finding.name` for the task name as `taskName` does not exist on AuditFinding. */}
-                                <td className="p-2 border">{finding.name}</td>
-                                <td className="p-2 border font-semibold">{finding.findingType}</td>
-                            </tr>
-                        ))}
+                        {findings.map((finding, index) => {
+                            const displayCodes = getDisplayCodes(finding);
+                            const isMC1 = finding.mc1 && !finding.mc2;
+                            const isMC2 = finding.mc2 && !finding.mc3;
+                            let rowClasses = "bg-red-50 hover:bg-red-100";
+                            if (isMC2) {
+                                rowClasses += " font-bold italic";
+                            } else if (isMC1) {
+                                rowClasses += " font-bold";
+                            }
+                            return (
+                                <tr key={`${finding.id}-${index}`} className={rowClasses}>
+                                    <td className="p-2 border text-center w-12">{displayCodes.mc1}</td>
+                                    <td className="p-2 border text-center w-12">{displayCodes.mc2}</td>
+                                    <td className="p-2 border text-center w-12">{displayCodes.mc3}</td>
+                                    <td className="p-2 border text-center w-12">{displayCodes.mc4}</td>
+                                    <td className="p-2 border">{finding.name}</td>
+                                    <td className="p-2 border font-semibold">{finding.findingType}</td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                  </table>
                  {findings.length === 0 && <div className="p-4 text-center text-slate-500">Không có lỗi nào được tìm thấy.</div>}

@@ -1,5 +1,5 @@
 // components/matrix/VersionManagerTab.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { VersionInfo, VersionData } from '../../types.ts';
 import * as versionManager from '../../services/versionManager.ts';
 import { PencilIcon, TrashIcon } from '../icons.tsx';
@@ -15,6 +15,17 @@ const VersionManagerTab: React.FC<VersionManagerTabProps> = ({ versions, setVers
     const [newVersionName, setNewVersionName] = useState('');
     const [renamingId, setRenamingId] = useState<string | null>(null);
     const [renameText, setRenameText] = useState('');
+    const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+    useEffect(() => {
+        if (notification) {
+            const timer = setTimeout(() => {
+                setNotification(null);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [notification]);
+
 
     const handleSave = () => {
         if (!newVersionName.trim()) {
@@ -25,43 +36,71 @@ const VersionManagerTab: React.FC<VersionManagerTabProps> = ({ versions, setVers
             const updatedVersions = versionManager.saveVersion(newVersionName, currentData);
             setVersions(updatedVersions);
             setNewVersionName('');
-            alert(`Đã lưu phiên bản "${newVersionName}" thành công.`);
+            setNotification({ message: `Đã lưu phiên bản "${newVersionName}" thành công.`, type: 'success' });
         } catch (e) {
-            // Error is alerted within the service
+            setNotification({ message: 'Lỗi khi lưu phiên bản.', type: 'error' });
         }
     };
 
     const handleLoad = (versionId: string) => {
-        if (window.confirm('Thao tác này sẽ ghi đè lên dữ liệu hiện tại. Bạn có chắc muốn tải phiên bản này không?')) {
+        const versionToLoad = versions.find(v => v.id === versionId);
+        if (!versionToLoad) {
+            console.error("Version to load not found:", versionId);
+            setNotification({ message: 'Lỗi: Không tìm thấy phiên bản.', type: 'error' });
+            return;
+        }
+    
+        if (window.confirm(`Thao tác này sẽ ghi đè dữ liệu làm việc hiện tại bằng phiên bản "${versionToLoad.name}". Bạn có muốn tiếp tục?`)) {
             const data = versionManager.getVersionData(versionId);
             if (data) {
                 loadVersionData(data);
-                alert('Đã tải phiên bản thành công.');
+                setNotification({ message: `Đã tải phiên bản "${versionToLoad.name}".`, type: 'success' });
             } else {
-                alert('Không thể tải dữ liệu phiên bản.');
+                setNotification({ message: 'Lỗi: Không thể tải dữ liệu phiên bản.', type: 'error' });
             }
         }
     };
     
     const handleActivate = (versionId: string) => {
-        if (window.confirm('Kích hoạt phiên bản này sẽ đặt nó làm ma trận chính thức cho các chức năng khác (như Quản lý Mục tiêu). Dữ liệu hiện tại của bạn cũng sẽ được lưu và kích hoạt. Bạn có chắc chắn?')) {
-            const dataToActivate = versionManager.getVersionData(versionId);
-            if (dataToActivate) {
-                versionManager.saveActiveMatrix(dataToActivate);
-                alert('Đã kích hoạt phiên bản thành công.');
+        const versionToActivate = versions.find(v => v.id === versionId);
+        if (!versionToActivate) {
+            console.error("Version to activate not found:", versionId);
+            setNotification({ message: 'Lỗi: Không tìm thấy phiên bản.', type: 'error' });
+            return;
+        }
+        
+        if (window.confirm(`Kích hoạt phiên bản "${versionToActivate.name}" sẽ đặt nó làm ma trận chính thức và ghi đè công việc hiện tại. Tiếp tục?`)) {
+            const data = versionManager.getVersionData(versionId);
+            if (data) {
+                loadVersionData(data); // Update UI state
+                versionManager.saveActiveMatrix(data); // Persist as active
+                setNotification({ message: `Đã kích hoạt phiên bản "${versionToActivate.name}".`, type: 'success' });
+            } else {
+                setNotification({ message: 'Lỗi: Không thể kích hoạt phiên bản.', type: 'error' });
             }
         }
     };
 
     const handleDelete = (versionId: string) => {
-        if (window.confirm('Bạn có chắc muốn xóa vĩnh viễn phiên bản này không?')) {
+        const versionToDelete = versions.find(v => v.id === versionId);
+        if (!versionToDelete) {
+            console.error("Version to delete not found:", versionId);
+            setNotification({ message: 'Lỗi: Không tìm thấy phiên bản.', type: 'error' });
+            return;
+        }
+    
+        if (window.confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn phiên bản "${versionToDelete.name}" không?`)) {
             const updatedVersions = versionManager.deleteVersion(versionId);
             setVersions(updatedVersions);
+            setNotification({ message: `Đã xóa phiên bản "${versionToDelete.name}".`, type: 'success' });
         }
     };
 
     const handleRename = (versionId: string) => {
-        if (!renameText.trim()) return;
+        if (!renameText.trim()) {
+            setRenamingId(null); // Cancel renaming if text is empty
+            return;
+        };
         const updatedVersions = versionManager.renameVersion(versionId, renameText);
         setVersions(updatedVersions);
         setRenamingId(null);
@@ -69,7 +108,7 @@ const VersionManagerTab: React.FC<VersionManagerTabProps> = ({ versions, setVers
     };
 
     return (
-        <div className="p-4 h-full flex flex-col space-y-4">
+        <div className="p-4 h-full flex flex-col space-y-4 relative">
             <div className="flex-shrink-0 p-4 border border-slate-200 rounded-md bg-white shadow-sm space-y-2">
                 <h3 className="font-bold text-lg">Lưu Phiên bản Hiện tại</h3>
                 <div className="flex gap-2">
@@ -108,7 +147,10 @@ const VersionManagerTab: React.FC<VersionManagerTabProps> = ({ versions, setVers
                                                     value={renameText}
                                                     onChange={e => setRenameText(e.target.value)}
                                                     onBlur={() => handleRename(v.id)}
-                                                    onKeyDown={e => e.key === 'Enter' && handleRename(v.id)}
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter') handleRename(v.id);
+                                                        if (e.key === 'Escape') setRenamingId(null);
+                                                    }}
                                                     className="p-1 border rounded"
                                                     autoFocus
                                                 />
@@ -132,6 +174,13 @@ const VersionManagerTab: React.FC<VersionManagerTabProps> = ({ versions, setVers
                     )}
                 </div>
             </div>
+            
+            {notification && (
+                <div className={`fixed bottom-6 right-6 p-4 rounded-lg shadow-xl text-sm font-semibold animate-fade-in-out z-50
+                    ${notification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {notification.message}
+                </div>
+            )}
         </div>
     );
 };
