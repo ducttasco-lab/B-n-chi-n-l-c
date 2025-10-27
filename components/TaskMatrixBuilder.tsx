@@ -12,7 +12,7 @@ import VersionManagerTab from './matrix/VersionManagerTab.tsx';
 import MatrixAuditTab from './matrix/MatrixAuditTab.tsx';
 import TaskDashboardTab from './matrix/TaskDashboardTab.tsx';
 import ProcessLookupTab from './matrix/ProcessLookupTab.tsx';
-import { parseTasksFromMarkdown } from '../../utils/markdown.ts';
+import { parseTasksFromMarkdown } from '../utils/markdown.ts';
 
 type MatrixTab = 'tasks' | 'company' | 'department' | 'personnel' | 'versions' | 'audit' | 'dashboard' | 'process';
 
