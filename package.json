@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://ducttasco-lab.github.io/B-n-chi-n-l-c",
+  "homepage": "https://<USERNAME>.github.io/<REPO_NAME>",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -21,9 +21,6 @@
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
-    "gh-pages": "^6.1.1",
-    "tailwindcss": "^3.4.1",
-    "postcss": "^8.4.38",
-    "autoprefixer": "^10.4.19"
+    "gh-pages": "^6.1.1"
   }
 }

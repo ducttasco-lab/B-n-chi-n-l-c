@@ -23,7 +23,7 @@ const MapAndDiagnosisTab: React.FC<MapAndDiagnosisTabProps> = ({
 }) => {
   return (
     <div className="h-full w-full overflow-y-auto p-4">
-      <div className="bg-white rounded-lg shadow-md overflow-hidden min-h-[500px]">
+      <div className="bg-white rounded-lg shadow-md overflow-hidden aspect-[1.6]">
         <StrategicMap 
           model={strategicModel} 
           onNodeSelect={onNodeSelect} 

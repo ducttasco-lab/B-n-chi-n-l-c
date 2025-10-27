@@ -4,14 +4,14 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
-    // The base path should be the name of your repository.
-    const base = '/B-n-chi-n-l-c/'; 
+    // Replace <REPO_NAME> with your repository name
+    const repoName = env.VITE_REPO_NAME || '/<REPO_NAME>/'; 
     return {
       server: {
         port: 3000,
         host: '0.0.0.0',
       },
-      base: base, // Use the base path for deployment.
+      base: repoName,
       plugins: [react()],
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),

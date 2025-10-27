@@ -1,14 +1,17 @@
 // services/geminiService.ts
 import { GoogleGenAI, GenerateContentResponse, Content } from "@google/genai";
 import { StrategicModel, SixVariablesModel, KPI, StrategicNode, SixVariablesNode, Task, KpiStatus } from '../types.ts';
+import { getActiveApiKey } from './settingsService.ts';
 
-const API_KEY = process.env.API_KEY;
-
-if (!API_KEY) {
-  console.error("API_KEY is not defined. Please set it in your environment variables.");
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY! });
+// Helper function to get a configured AI client at runtime
+const getAiClient = () => {
+    const activeApiKey = getActiveApiKey();
+    if (!activeApiKey || !activeApiKey.key || activeApiKey.key.includes('YOUR_GEMINI_API_KEY_HERE')) {
+        console.error("Active API key is not configured or is a placeholder.");
+        return null;
+    }
+    return new GoogleGenAI({ apiKey: activeApiKey.key });
+};
 
 const fileToBase64 = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -21,8 +24,12 @@ const fileToBase64 = (file: File): Promise<string> =>
     reader.onerror = (error) => reject(error);
   });
 
+const NO_API_KEY_MESSAGE = "Lỗi: API Key chưa được cấu hình. Vui lòng vào 'Cài đặt AI' -> 'Quản lý API Key' và thêm key của bạn.";
+
 export const sendAiChat = async (prompt: string, file?: File): Promise<string> => {
-  if (!API_KEY) return "AI features are disabled because the API key is not configured.";
+  const ai = getAiClient();
+  if (!ai) return NO_API_KEY_MESSAGE;
+
   try {
     const parts: any[] = [{ text: prompt }];
 
@@ -51,7 +58,9 @@ export const sendAiChat = async (prompt: string, file?: File): Promise<string> =
 
 
 export const generateText = async (prompt: string): Promise<string> => {
-  if (!API_KEY) return "AI features are disabled because the API key is not configured.";
+  const ai = getAiClient();
+  if (!ai) return NO_API_KEY_MESSAGE;
+
   try {
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -65,7 +74,9 @@ export const generateText = async (prompt: string): Promise<string> => {
 };
 
 export const generateTextWithFiles = async (prompt: string, files?: { mimeType: string; data: string }[]): Promise<string> => {
-    if (!API_KEY) return "AI features are disabled because the API key is not configured.";
+    const ai = getAiClient();
+    if (!ai) return NO_API_KEY_MESSAGE;
+
     try {
         const parts: any[] = [{ text: prompt }];
         if (files && files.length > 0) {
@@ -96,7 +107,9 @@ export const generateJsonResponse = async <T>(
   prompt: string,
   files?: { mimeType: string; data: string }[]
 ): Promise<T | null> => {
-    if (!API_KEY) return null;
+    const ai = getAiClient();
+    if (!ai) return null;
+
     try {
         const parts: any[] = [{ text: prompt }];
         if (files && files.length > 0) {
