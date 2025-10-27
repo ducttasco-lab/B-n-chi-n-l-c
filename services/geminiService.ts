@@ -216,7 +216,7 @@ ${fullText}
 };
 
 
-export const suggestKPIs = async (taskName: string, objective: string): Promise<Omit<KPI, 'kpiId' | 'actual' | 'progress' | 'history'>[] | null> => {
+export const suggestKPIs = async (taskName: string, objective: string): Promise<Omit<KPI, 'kpiId' | 'kpiCode' | 'actual' | 'progress' | 'history'>[] | null> => {
     const prompt = `[ĐÓNG VAI]: Bạn là một chuyên gia hàng đầu về quản trị hiệu suất bằng KPI.
 [BỐI CẢNH]:
 - Nhiệm vụ chính từ Ma trận Phân nhiệm: "${taskName}"
@@ -230,7 +230,7 @@ export const suggestKPIs = async (taskName: string, objective: string): Promise<
 [VÍ DỤ]:
 {"kpis": [{"description": "Doanh thu bán hàng", "baseline": 0, "target": 500000000, "unit": "VNĐ"}, {"description": "Tỷ lệ khách hàng hài lòng", "baseline": 80, "target": 95, "unit": "%"}]}
 `;
-    const result = await generateJsonResponse<{ kpis: Omit<KPI, 'kpiId' | 'actual' | 'progress' | 'history'>[] }>(prompt);
+    const result = await generateJsonResponse<{ kpis: Omit<KPI, 'kpiId' | 'kpiCode' | 'actual' | 'progress' | 'history'>[] }>(prompt);
     return result?.kpis || null;
 };
 

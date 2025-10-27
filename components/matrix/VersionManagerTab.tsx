@@ -1,35 +1,84 @@
 // components/matrix/VersionManagerTab.tsx
 import React, { useState, useEffect, useMemo } from 'react';
-import { VersionInfo, VersionData } from '../../types.ts';
+import { VersionInfo, VersionData, Task, Department, Role } from '../../types.ts';
 import * as versionManager from '../../services/versionManager.ts';
 import { PencilIcon, TrashIcon } from '../icons.tsx';
 
 interface VersionManagerTabProps {
     versions: VersionInfo[];
     setVersions: React.Dispatch<React.SetStateAction<VersionInfo[]>>;
-    currentData: VersionData;
+    tasks: Task[];
+    departments: Department[];
+    roles: Role[];
+    generatedTaskMarkdown: string;
+    companyAssignments: Record<string, Record<string, string>>;
+    departmentalAssignments: Record<string, Record<string, string>>;
     loadVersionData: (data: VersionData) => void;
     activeVersionId: string | null;
     setActiveVersionId: (id: string | null) => void;
 }
 
-const VersionManagerTab: React.FC<VersionManagerTabProps> = ({ versions, setVersions, currentData, loadVersionData, activeVersionId, setActiveVersionId }) => {
+/**
+ * Creates a canonical (consistent) JSON string from version data by sorting arrays and object keys.
+ * This is crucial for reliably comparing two VersionData objects.
+ * @param data The version data to stringify.
+ * @returns A consistent JSON string representation.
+ */
+const getCanonicalJson = (data: VersionData | null): string => {
+    if (!data) return '';
+    try {
+        // Replacer function for JSON.stringify that sorts object keys alphabetically.
+        const replacer = (key: string, value: any) => {
+            if (value && typeof value === 'object' && !Array.isArray(value)) {
+                const replacement: Record<string, any> = {};
+                for (const k of Object.keys(value).sort()) {
+                    replacement[k] = value[k];
+                }
+                return replacement;
+            }
+            return value;
+        };
+
+        const dataCopy = JSON.parse(JSON.stringify(data));
+
+        dataCopy.tasks?.sort((a: any, b: any) => a.rowNumber - b.rowNumber || a.id.localeCompare(b.id));
+        dataCopy.departments?.sort((a: any, b: any) => a.priority - b.priority || a.code.localeCompare(b.code));
+        dataCopy.roles?.sort((a: any, b: any) => a.id.localeCompare(b.id));
+        
+        return JSON.stringify(dataCopy, replacer);
+        
+    } catch (e) {
+        console.error("Error creating canonical JSON:", e);
+        return JSON.stringify(data);
+    }
+};
+
+
+const VersionManagerTab: React.FC<VersionManagerTabProps> = ({ 
+    versions, setVersions, tasks, departments, roles, generatedTaskMarkdown, 
+    companyAssignments, departmentalAssignments, loadVersionData, 
+    activeVersionId, setActiveVersionId 
+}) => {
     const [newVersionName, setNewVersionName] = useState('');
     const [renamingId, setRenamingId] = useState<string | null>(null);
     const [renameText, setRenameText] = useState('');
     const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-    // Derive the currently viewed version ID by comparing current editor data with all saved versions.
-    // This is more robust than local state and avoids synchronization issues.
-    const stringifiedCurrentData = useMemo(() => JSON.stringify(currentData), [currentData]);
+    const currentData: VersionData = useMemo(() => ({
+        tasks, departments, roles, generatedTaskMarkdown, companyAssignments, departmentalAssignments
+    }), [tasks, departments, roles, generatedTaskMarkdown, companyAssignments, departmentalAssignments]);
+
+    const stringifiedCurrentData = useMemo(() => getCanonicalJson(currentData), [currentData]);
+    
     const viewingVersionId = useMemo(() => {
         for (const version of versions) {
             const versionData = versionManager.getVersionData(version.id);
-            if (versionData && JSON.stringify(versionData) === stringifiedCurrentData) {
+            const stringifiedVersionData = getCanonicalJson(versionData);
+            if (stringifiedVersionData && stringifiedVersionData === stringifiedCurrentData) {
                 return version.id;
             }
         }
-        return null; // Indicates unsaved changes or no match
+        return null; 
     }, [stringifiedCurrentData, versions]);
 
     useEffect(() => {
@@ -46,11 +95,19 @@ const VersionManagerTab: React.FC<VersionManagerTabProps> = ({ versions, setVers
             return;
         }
         try {
-            const updatedVersions = versionManager.saveVersion(newVersionName, currentData);
+            // Construct the data object explicitly here to ensure all parts are included.
+            const dataToSave: VersionData = {
+                tasks,
+                departments,
+                roles,
+                generatedTaskMarkdown,
+                companyAssignments,
+                departmentalAssignments,
+            };
+            const updatedVersions = versionManager.saveVersion(newVersionName, dataToSave);
             setVersions(updatedVersions);
             setNewVersionName('');
             setNotification({ message: `Đã lưu phiên bản "${newVersionName}" thành công.`, type: 'success' });
-            // The viewingVersionId will automatically update on the next render thanks to the useMemo hook.
         } catch (e) {
             setNotification({ message: 'Lỗi khi lưu phiên bản.', type: 'error' });
         }
@@ -67,7 +124,6 @@ const VersionManagerTab: React.FC<VersionManagerTabProps> = ({ versions, setVers
             const data = versionManager.getVersionData(versionId);
             if (data) {
                 loadVersionData(data);
-                // No need to set local viewing state, it will be derived from the loaded data.
                 setNotification({ message: `Đã tải phiên bản "${versionToLoad.name}" vào không gian làm việc.`, type: 'success' });
             } else {
                 setNotification({ message: 'Lỗi: Không thể tải dữ liệu phiên bản.', type: 'error' });

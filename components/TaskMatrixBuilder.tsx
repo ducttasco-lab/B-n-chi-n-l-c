@@ -124,7 +124,12 @@ const TaskMatrixBuilder: React.FC<TaskMatrixBuilderProps> = ({
             case 'versions': return <VersionManagerTab 
                                         versions={versions} 
                                         setVersions={setVersions} 
-                                        currentData={{ tasks, departments, roles, generatedTaskMarkdown, companyAssignments: companyMatrixAssignments, departmentalAssignments }} 
+                                        tasks={tasks}
+                                        departments={departments}
+                                        roles={roles}
+                                        generatedTaskMarkdown={generatedTaskMarkdown}
+                                        companyAssignments={companyMatrixAssignments}
+                                        departmentalAssignments={departmentalAssignments}
                                         loadVersionData={loadVersionData} 
                                         activeVersionId={activeVersionId}
                                         setActiveVersionId={setActiveVersionId}

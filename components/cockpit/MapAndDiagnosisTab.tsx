@@ -23,7 +23,7 @@ const MapAndDiagnosisTab: React.FC<MapAndDiagnosisTabProps> = ({
 }) => {
   return (
     <div className="h-full w-full overflow-y-auto p-4">
-      <div className="bg-white rounded-lg shadow-md overflow-hidden min-h-[600px]">
+      <div className="bg-white rounded-lg shadow-md overflow-hidden min-h-[500px]">
         <StrategicMap 
           model={strategicModel} 
           onNodeSelect={onNodeSelect} 
@@ -31,7 +31,7 @@ const MapAndDiagnosisTab: React.FC<MapAndDiagnosisTabProps> = ({
         />
       </div>
       <div className="bg-white p-4 rounded-lg shadow-md mt-24">
-        <div className="max-w-sm mx-auto">
+        <div className="max-w-sm mx-auto pt-20 pb-12">
           <SixVariablesNavigator 
             model={sixVariablesModel} 
             onVariableSelect={onVariableSelect} 

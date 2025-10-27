@@ -152,16 +152,39 @@ const GoalSetupTab: React.FC<GoalSetupTabProps> = ({ goals, setGoals, department
     
     const handleAiSuggest = async (goal: Goal) => {
         setIsAiSuggesting(goal.goalId);
-        const suggestedKpis = await suggestKPIs(goal.linkedTaskName, goal.goalDescription);
-        if (suggestedKpis && suggestedKpis.length > 0) {
-            // Here, you would typically show a modal to let the user select from AI suggestions
-            // and then match them to the predefined KPI library.
-            // For simplicity now, we'll just alert and log them.
-            alert(`AI đã gợi ý ${suggestedKpis.length} KPIs. Xem console để biết chi tiết.\n(Trong phiên bản hoàn thiện, đây sẽ là một modal để bạn chọn và liên kết với thư viện)`);
-            console.log("AI Suggested KPIs:", suggestedKpis);
+        const suggestedKpisData = await suggestKPIs(goal.linkedTaskName, goal.goalDescription);
+        
+        if (suggestedKpisData && suggestedKpisData.length > 0) {
+            const newKpis: KPI[] = suggestedKpisData.map(suggestion => ({
+                ...suggestion,
+                kpiId: `kpi-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                kpiCode: 'AI', // Placeholder for AI-suggested KPI, as it's not from the library
+                actual: suggestion.baseline ?? 0,
+                progress: 0,
+                history: [],
+            }));
+
+            setGoals(prevGoals => prevGoals.map(g => {
+                if (g.goalId === goal.goalId) {
+                    // Filter out any suggested KPIs that have the exact same description as an existing one
+                    const existingDescriptions = new Set(g.kpis.map(k => k.description.trim()));
+                    const kpisToAdd = newKpis.filter(nk => !existingDescriptions.has(nk.description.trim()));
+                    
+                    if (kpisToAdd.length < newKpis.length) {
+                        alert("Một vài gợi ý từ AI đã tồn tại trong mục tiêu này và sẽ được bỏ qua.");
+                    }
+
+                    return {
+                        ...g,
+                        kpis: [...g.kpis, ...kpisToAdd]
+                    };
+                }
+                return g;
+            }));
         } else {
-            alert("AI không thể tạo gợi ý.");
+            alert("AI không thể tạo gợi ý KPI cho mục tiêu này.");
         }
+
         setIsAiSuggesting(null);
     };
 
